@@ -43,6 +43,7 @@ set(_BR2_PRELOADED "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
 psxrecomp_add_game_runtime(psx-runtime
     ENABLE_NETPLAY_IF_PRESENT
     ENABLE_SETUP_WIZARD
+    NETPLAY_LOBBY_URL "ws://netplay.retcomm.net:8765"
     WINDOW_TITLE "Bloody Roar II Recompiled"
     EXE_NAME "BloodyRoar2_Recompiled"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
@@ -60,6 +61,7 @@ psxrecomp_add_game_runtime(psx-runtime
 psxrecomp_add_game_runtime(psx-runtime-us
     ENABLE_NETPLAY_IF_PRESENT
     ENABLE_SETUP_WIZARD
+    NETPLAY_LOBBY_URL "ws://netplay.retcomm.net:8765"
     WINDOW_TITLE "Bloody Roar II Recompiled (USA)"
     EXE_NAME "BloodyRoar2_Recompiled_USA"
     DEFAULT_GAME_CONFIG_PATH "game_us.toml"

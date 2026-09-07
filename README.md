@@ -25,8 +25,8 @@ into a standalone executable — this is a real PC port, not an emulator.
 
 1. **Grab a release** — download the zip for your region and OS from
    [Releases](https://github.com/novapowers0/BloodyRoar2Recomp/releases/latest)
-   (Windows `BloodyRoar2-EU-v0.5.1.zip` / `BloodyRoar2-US-v0.5.1.zip`, or the
-   `...-Linux-v0.5.1.zip` variants).
+   (Windows `BloodyRoar2-EU-v0.6.0.zip` / `BloodyRoar2-US-v0.6.0.zip`, or the
+   `...-Linux-v0.6.0.zip` variants).
 2. **Unzip anywhere** — each zip is self-contained (executable, OpenBIOS,
    launcher assets and mods included).
 3. **Add your disc image** — put your legally owned *Bloody Roar II* `.bin`/`.cue`
@@ -63,6 +63,29 @@ stub are excluded from this title.
 
 ---
 
+## Netplay (online versus)
+
+Bloody Roar II supports **2-player online versus** through the launcher's
+**Netplay** button, powered by the framework's rollback-capable
+[recomp-net](https://github.com/TechnicallyComputers/recomp-net) stack
+(delay-sync by default; rollback where the session allows). The public lobby
+runs at `netplay.retcomm.net`.
+
+- **How to play online**: both players run the **same release** (same region +
+  OS), open the launcher, click **Netplay** → **Create** (host) or **Join**
+  (enter the host's lobby), seat both players, and start. Or use **LAN /
+  Direct IP** for a peer-to-peer session on the same network.
+- **Same disc required**: netplay is dump-strict — every peer must mount the
+  same region's `.cue`/`.bin` image geometry. The online gate verifies the TOC
+  fingerprint and track count before a session can start.
+- **Same version pin**: peers must run the same release build so generated code
+  and the netplay protocol stay compatible. Mixing regions (EU vs US) is not
+  supported in one session.
+- Mods are disabled for netplay sessions (the launcher runs a vanilla session),
+  so every peer simulates identically.
+
+---
+
 ## Widescreen (from scratch)
 
 The widescreen mod widens the **3D fight camera** (not a stretch) using the
@@ -95,10 +118,10 @@ legally owned disc image beside it and pick it in the launcher.
 
 | Zip | OS | Region | Executable |
 |---|---|---|---|
-| `BloodyRoar2-EU-v0.5.1.zip` | Windows | Europe | `BloodyRoar2_Recompiled.exe` |
-| `BloodyRoar2-US-v0.5.1.zip` | Windows | USA | `BloodyRoar2_Recompiled_USA.exe` |
-| `BloodyRoar2-EU-Linux-v0.5.1.zip` | **Linux** | Europe | `BloodyRoar2_Recompiled` |
-| `BloodyRoar2-US-Linux-v0.5.1.zip` | **Linux** | USA | `BloodyRoar2_Recompiled_USA` |
+| `BloodyRoar2-EU-v0.6.0.zip` | Windows | Europe | `BloodyRoar2_Recompiled.exe` |
+| `BloodyRoar2-US-v0.6.0.zip` | Windows | USA | `BloodyRoar2_Recompiled_USA.exe` |
+| `BloodyRoar2-EU-Linux-v0.6.0.zip` | **Linux** | Europe | `BloodyRoar2_Recompiled` |
+| `BloodyRoar2-US-Linux-v0.6.0.zip` | **Linux** | USA | `BloodyRoar2_Recompiled_USA` |
 
 > On Linux, `chmod +x BloodyRoar2_Recompiled` and run it — the zips are named
 > `...-Linux-...` and drop the `.exe` extension.

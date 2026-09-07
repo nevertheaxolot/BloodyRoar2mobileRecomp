@@ -68,9 +68,9 @@ package() { # package <exe-name> <config-file> <folder-name> <display-name>
   # Launcher assets (fonts + images) staged by recomp-ui.
   cp -a "${BUILD_DIR}/assets" "${out}/assets"
 
-  # Curated mod catalog.
+  # Curated mod catalog (v4 runtime stages it under mods/bundled).
   mkdir -p "${out}/mods"
-  cp -a "${BUILD_DIR}/mods/packages" "${out}/mods/packages"
+  cp -a "${BUILD_DIR}/mods/bundled" "${out}/mods/bundled"
 
   # Game configs.
   pick config_src "${config}"

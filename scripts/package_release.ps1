@@ -54,8 +54,8 @@ function New-ReleaseFolder($exeName, $configName, $folderName, $displayName) {
     # Launcher assets (fonts + images).
     Copy-Tree (Join-Path $Build "assets") (Join-Path $out "assets")
 
-    # Curated mod catalog.
-    Copy-Tree (Join-Path $Build "mods\packages") (Join-Path $out "mods\packages")
+    # Curated mod catalog (v4 runtime stages it under mods/bundled).
+    Copy-Tree (Join-Path $Build "mods\bundled") (Join-Path $out "mods\bundled")
 
     # Game configs.
     Copy-Item (Join-Path $Root $configName) (Join-Path $out $configName) -Force

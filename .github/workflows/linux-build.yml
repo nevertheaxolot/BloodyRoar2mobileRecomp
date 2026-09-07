@@ -166,10 +166,17 @@ jobs:
           CONTENTS="$(mktemp)"
           trap 'rm -f "${CONTENTS}"' EXIT
           unzip -Z1 "${ZIP}" >"${CONTENTS}"
-          grep -qE '(^|/)BloodyRoar2_Recompiled$' "${CONTENTS}"
-          grep -qE '(^|/)assets/psxrecomp\.ico$' "${CONTENTS}"
-          grep -qE '(^|/)psxrecomp/CMakeLists\.txt$' "${CONTENTS}"
-          grep -qE '(^|/)psxrecomp/tools/package_setup_host\.sh$' "${CONTENTS}"
+          require_entry() {
+            if ! grep -qE "$1" "${CONTENTS}"; then
+              echo "::error::setup ZIP is missing required entry: $2"
+              exit 1
+            fi
+          }
+          require_entry '(^|/)BloodyRoar2_Recompiled$' 'BloodyRoar2_Recompiled'
+          require_entry '(^|/)assets/psxrecomp\.ico$' 'assets/psxrecomp.ico'
+          require_entry '(^|/)CMakeLists\.txt$' 'CMakeLists.txt'
+          require_entry '(^|/)psxrecomp/' 'psxrecomp/'
+          require_entry '(^|/)recomp-ui/' 'recomp-ui/'
           echo "setup package contents verified: ${ZIP}"
 
       - name: Upload artifact

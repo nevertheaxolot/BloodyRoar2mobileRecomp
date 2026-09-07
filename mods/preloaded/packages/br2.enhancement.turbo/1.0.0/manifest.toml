@@ -1,0 +1,68 @@
+format_version = 5
+id = "br2.enhancement.turbo"
+version = "1.0.0"
+name = "Bloody Roar II Turbo Mode"
+author = "NovaPowers"
+description = "Runs the game at an arcade-style turbo cadence (75/120 Hz or uncapped) by re-pacing the guest VBlank. Gameplay speed scales with the rate, like the classic arcade Turbo editions."
+resolver = "declarative"
+save_compatibility = "shared"
+
+# Turbo is a pure guest-VBlank re-pace via psx_mod_set_native_vblank_rate.
+# It engages at activation (before the window/renderer are created) and applies
+# to both regions. In netplay sessions the host's plan decides: if the host
+# enables turbo, every peer simulates the same turbo cadence.
+
+[[target]]
+game_id = "SLES-01722"
+disc_sha256 = "d3381cc458c16347ea8180386483c42130cb2969f1f818bd76ac7c678d3ee0b8"
+
+[[target]]
+game_id = "SCUS-94424"
+disc_sha256 = "fbad8aef53b160abfcebddced9f9d69dcf39df00d8853b4c11f231b37220fc57"
+
+[[feature]]
+id = "turbo"
+name = "Turbo Mode"
+description = "Runs the whole game at an arcade-style turbo cadence: gameplay speed scales with the selected rate (60 stock / 75 / 120 / uncapped)."
+group = "Quality of Life"
+default_enabled = false
+
+[[option]]
+feature = "turbo"
+id = "rate"
+label = "Turbo rate"
+description = "Guest VBlank cadence. 60 is the stock game speed; 75 and 120 run faster (x1.25 / x2); Uncapped runs as fast as the host can simulate."
+group = "Quality of Life"
+type = "choice"
+default = "75"
+
+[[option.choice]]
+value = "60"
+label = "60 Hz (stock)"
+
+[[option.choice]]
+value = "75"
+label = "75 Hz (x1.25)"
+
+[[option.choice]]
+value = "120"
+label = "120 Hz (x2)"
+
+[[option.choice]]
+value = "uncapped"
+label = "Uncapped"
+
+[[plugin]]
+feature = "turbo"
+id = "br2.turbo.75"
+when = { rate = "75" }
+
+[[plugin]]
+feature = "turbo"
+id = "br2.turbo.120"
+when = { rate = "120" }
+
+[[plugin]]
+feature = "turbo"
+id = "br2.turbo.uncapped"
+when = { rate = "uncapped" }

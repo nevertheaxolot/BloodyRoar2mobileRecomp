@@ -45,6 +45,9 @@ renderer = "opengl"
 # Authentic 4:3 is the baseline. Bloody Roar II's widescreen is offered through
 # its own mod catalog (br2.enhancement.widescreen), not a generic Video row.
 aspect_ratio = "4:3"
+# Vulkan backend: compiled into the release (PSX_HAVE_VULKAN) and exposed in
+# the launcher after visual validation (Fase 1).
+offer_vulkan = true
 
 # --- Bloody Roar II widescreen (authored from scratch for this title) ------
 # Follows the psxrecomp enhancement pattern used by Ape Escape / Tomba (mstan):

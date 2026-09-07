@@ -25,8 +25,8 @@ into a standalone executable — this is a real PC port, not an emulator.
 
 1. **Grab a release** — download the zip for your region and OS from
    [Releases](https://github.com/novapowers0/BloodyRoar2Recomp/releases/latest)
-   (Windows `BloodyRoar2-EU-v0.6.0.zip` / `BloodyRoar2-US-v0.6.0.zip`, or the
-   `...-Linux-v0.6.0.zip` variants).
+   (Windows `BloodyRoar2-EU-v0.6.2.zip` / `BloodyRoar2-US-v0.6.2.zip`, or the
+   `...-Linux-v0.6.2.zip` variants).
 2. **Unzip anywhere** — each zip is self-contained (executable, OpenBIOS,
    launcher assets and mods included).
 3. **Add your disc image** — put your legally owned *Bloody Roar II* `.bin`/`.cue`
@@ -53,6 +53,8 @@ authentic experience — turn on only what you want.
 |---|---|---|
 | `br2.enhancement.widescreen` | **Real widescreen** (16:9 / 21:9 / Adaptive): widens the 3D fight camera to reveal more of the arena instead of stretching. 2D menus and FMVs stay faithful 4:3. Authored from scratch for Bloody Roar II. | Off |
 | `br2.enhancement.performance` | **Intro FMV skip**: ends the intro movies the game's own way the instant they are detected, so boot reaches the title/attract screen sooner. 2D copyright logos are unaffected. | Off |
+| `br2.enhancement.unlock-all` | **Unlock All Content**: unlocks Gado, Shen Long, all custom options, movies and pictures without completing modes (guest-RAM flag rewrite, like the classic GameShark codes). Skipped in netplay sessions. | Off |
+| `br2.enhancement.turbo` | **Turbo Mode**: runs the game at an arcade-style turbo cadence (75/120 Hz or uncapped) by re-pacing the guest VBlank. Gameplay speed scales with the rate, like the classic arcade Turbo editions. | Off |
 | `psx.enhancement.cd-speed` | **CD Speed**: shortens load times by speeding up the emulated CD drive — without speeding the game up, so timing-based play is not disturbed. | Off |
 | `psx.enhancement.fast-loading` | **Fast Loading**: accelerates the wall-clock pacing of loads. Safe host-side accelerator; the game itself never desyncs. | Off |
 | `psx.enhancement.pgxp` | **PGXP Precision**: sub-pixel vertex precision + perspective-correct texturing. Stops polygon wobble and floor/texture warping. Needs supersampling ≥ 2 to be visible. | Off |
@@ -81,8 +83,10 @@ runs at `netplay.retcomm.net`.
 - **Same version pin**: peers must run the same release build so generated code
   and the netplay protocol stay compatible. Mixing regions (EU vs US) is not
   supported in one session.
-- Mods are disabled for netplay sessions (the launcher runs a vanilla session),
-  so every peer simulates identically.
+- **Mods follow the host**: the host's enabled mod plan is published on the
+  lobby and every peer applies it at launch, so the match simulates identically.
+  Guests that lack a host-selected package are warned before the session starts.
+  The unlock-all mod is skipped in netplay sessions.
 
 ---
 
@@ -118,10 +122,10 @@ legally owned disc image beside it and pick it in the launcher.
 
 | Zip | OS | Region | Executable |
 |---|---|---|---|
-| `BloodyRoar2-EU-v0.6.0.zip` | Windows | Europe | `BloodyRoar2_Recompiled.exe` |
-| `BloodyRoar2-US-v0.6.0.zip` | Windows | USA | `BloodyRoar2_Recompiled_USA.exe` |
-| `BloodyRoar2-EU-Linux-v0.6.0.zip` | **Linux** | Europe | `BloodyRoar2_Recompiled` |
-| `BloodyRoar2-US-Linux-v0.6.0.zip` | **Linux** | USA | `BloodyRoar2_Recompiled_USA` |
+| `BloodyRoar2-EU-v0.6.2.zip` | Windows | Europe | `BloodyRoar2_Recompiled.exe` |
+| `BloodyRoar2-US-v0.6.2.zip` | Windows | USA | `BloodyRoar2_Recompiled_USA.exe` |
+| `BloodyRoar2-EU-Linux-v0.6.2.zip` | **Linux** | Europe | `BloodyRoar2_Recompiled` |
+| `BloodyRoar2-US-Linux-v0.6.2.zip` | **Linux** | USA | `BloodyRoar2_Recompiled_USA` |
 
 > On Linux, `chmod +x BloodyRoar2_Recompiled` and run it — the zips are named
 > `...-Linux-...` and drop the `.exe` extension.
@@ -192,7 +196,7 @@ BloodyRoar2Recomp/
 ├── psxrecomp/           # Runtime + recompiler (submodule)
 ├── recomp-ui/           # Launcher UI (submodule)
 ├── mods/                # Curated mod catalog (manifests .psxmod)
-├── src/mods/            # Per-title mod plugins (widescreen + FMV skip)
+├── src/mods/            # Per-title mod plugins (widescreen, FMV skip, unlock-all, turbo)
 ├── generated/           # NOT included. Recompiled C generated locally from your discs
 ├── seeds/               # First-pass seeds of the boot EXEs (EU + US)
 ├── tools/               # Utilities (sync_symbols.py)

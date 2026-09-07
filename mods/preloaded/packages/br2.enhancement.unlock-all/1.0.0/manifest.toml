@@ -1,0 +1,32 @@
+format_version = 5
+id = "br2.enhancement.unlock-all"
+version = "1.0.0"
+name = "Bloody Roar II Unlock All"
+author = "NovaPowers"
+description = "Unlocks all bonus content (Gado, Shen Long, custom options, movies, pictures) without completing arcade/story/survival modes."
+resolver = "declarative"
+save_compatibility = "shared"
+
+# Both regions of Bloody Roar II are covered. This is a guest-RAM flag rewrite
+# (the same effect as the known GameShark `801C.... FFFF` codes) applied every
+# VBlank while the feature is on and the game has started. Netplay sessions
+# disable mods, so a match never desyncs from unlock-state differences.
+
+[[target]]
+game_id = "SLES-01722"
+disc_sha256 = "d3381cc458c16347ea8180386483c42130cb2969f1f818bd76ac7c678d3ee0b8"
+
+[[target]]
+game_id = "SCUS-94424"
+disc_sha256 = "fbad8aef53b160abfcebddced9f9d69dcf39df00d8853b4c11f231b37220fc57"
+
+[[feature]]
+id = "unlock-all"
+name = "Unlock All Content"
+description = "Unlocks all bonus content without completing modes: Gado, Shen Long, all custom options, all movies and all pictures."
+group = "Quality of Life"
+default_enabled = false
+
+[[plugin]]
+feature = "unlock-all"
+id = "br2.enhancement.unlock-all"

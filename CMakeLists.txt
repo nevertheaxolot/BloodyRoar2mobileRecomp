@@ -53,10 +53,15 @@ psxrecomp_add_game_runtime(psx-runtime
     EXTRAS_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/br2_widescreen_plugin.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/br2_enhancement_plugin.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/br2_unlock_plugin.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/br2_turbo_plugin.c"
     GEN_MARKER "generated/SLES_017.22_dispatch.c"
     GEN_FULL_GLOB "generated/SLES_017.22_full_*.c"
     CODEGEN_SETUP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/codegen_setup.c"
 )
+
+# Region select for the shared unlock plugin (1 = PAL, 2 = NTSC-U).
+target_compile_definitions(psx-runtime PRIVATE BR2_REGION=1)
 
 psxrecomp_add_game_runtime(psx-runtime-us
     ENABLE_NETPLAY_IF_PRESENT
@@ -71,10 +76,15 @@ psxrecomp_add_game_runtime(psx-runtime-us
     EXTRAS_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/br2_widescreen_plugin.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/br2_enhancement_plugin.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/br2_unlock_plugin.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/br2_turbo_plugin.c"
     GEN_MARKER "generated/SCUS_944.24_dispatch.c"
     GEN_FULL_GLOB "generated/SCUS_944.24_full_*.c"
     CODEGEN_SETUP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/codegen_setup.c"
 )
+
+# Region select for the shared unlock plugin (1 = PAL, 2 = NTSC-U).
+target_compile_definitions(psx-runtime-us PRIVATE BR2_REGION=2)
 
 # Stage runtime configs next to the exe for direct build/ launches. Only copy
 # files that exist — never fail POST_BUILD when a config is absent.

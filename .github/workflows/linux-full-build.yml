@@ -73,7 +73,7 @@ jobs:
             libsdl2-dev libgl1-mesa-dev libxtst-dev \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
             libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev \
-            libasound2-dev libpulse-dev libudev-dev zip \
+            libasound2-dev libpulse-dev libudev-dev zip unzip \
             libvulkan-dev glslc ccache
 
       - name: Cache SDL3 source
@@ -120,6 +120,13 @@ jobs:
           set -euo pipefail
           test -f generated/SLES_017.22_dispatch.c || { echo "::error::missing SLES_017.22_dispatch.c"; exit 1; }
           test -f generated/SCUS_944.24_dispatch.c || { echo "::error::missing SCUS_944.24_dispatch.c"; exit 1; }
+          test -f generated/SLES_017.22_decls.h || { echo "::error::missing SLES_017.22_decls.h"; exit 1; }
+          test -f generated/SCUS_944.24_decls.h || { echo "::error::missing SCUS_944.24_decls.h"; exit 1; }
+          EU_COUNT="$(find generated -maxdepth 1 -type f -name 'SLES_017.22_full_*.c' | wc -l)"
+          US_COUNT="$(find generated -maxdepth 1 -type f -name 'SCUS_944.24_full_*.c' | wc -l)"
+          test "${EU_COUNT}" -gt 0 || { echo "::error::no EU generated C translation units"; exit 1; }
+          test "${US_COUNT}" -gt 0 || { echo "::error::no USA generated C translation units"; exit 1; }
+          echo "generated C verified: EU=${EU_COUNT} translation units, USA=${US_COUNT} translation units"
           echo "game generated C restored and verified"
 
       - name: Setup ccache
@@ -180,6 +187,18 @@ jobs:
           test -x build-ci/BloodyRoar2_Recompiled || { echo "::error::EU binary missing"; exit 1; }
           test -x build-ci/BloodyRoar2_Recompiled_USA || { echo "::error::US binary missing"; exit 1; }
           file build-ci/BloodyRoar2_Recompiled build-ci/BloodyRoar2_Recompiled_USA
+          file build-ci/BloodyRoar2_Recompiled | grep -q 'ELF 64-bit.*x86-64' || {
+            echo "::error::EU binary is not a Linux x86-64 ELF executable"; exit 1;
+          }
+          file build-ci/BloodyRoar2_Recompiled_USA | grep -q 'ELF 64-bit.*x86-64' || {
+            echo "::error::US binary is not a Linux x86-64 ELF executable"; exit 1;
+          }
+          if ldd build-ci/BloodyRoar2_Recompiled | grep -q 'not found'; then
+            echo "::error::EU binary has unresolved shared-library dependencies"; exit 1;
+          fi
+          if ldd build-ci/BloodyRoar2_Recompiled_USA | grep -q 'not found'; then
+            echo "::error::US binary has unresolved shared-library dependencies"; exit 1;
+          fi
           for d in build-ci build-ci/Release; do
             if [[ -f "${d}/psx_game_version.txt" ]]; then
               BUILT="$(tr -d '[:space:]' <"${d}/psx_game_version.txt")"
@@ -199,6 +218,31 @@ jobs:
           chmod +x scripts/package_release_linux.sh
           scripts/package_release_linux.sh build-ci "${RELEASE_VERSION}"
           ls -la dist/
+
+      - name: Verify Linux release package contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ZIP in dist/BloodyRoar2-EU-linux-x64-*.zip dist/BloodyRoar2-US-linux-x64-*.zip; do
+            test -f "${ZIP}" || { echo "::error::missing package ${ZIP}"; exit 1; }
+            CONTENTS="$(mktemp)"
+            unzip -Z1 "${ZIP}" >"${CONTENTS}"
+            case "${ZIP}" in
+              *EU*)
+                grep -qE '(^|/)BloodyRoar2_Recompiled$' "${CONTENTS}"
+                grep -qE '(^|/)game\.toml$' "${CONTENTS}"
+                ;;
+              *US*)
+                grep -qE '(^|/)BloodyRoar2_Recompiled_USA$' "${CONTENTS}"
+                grep -qE '(^|/)game_us\.toml$' "${CONTENTS}"
+                ;;
+            esac
+            grep -qE '(^|/)bios/openbios\.bin$' "${CONTENTS}"
+            grep -qE '(^|/)assets/psxrecomp\.png$' "${CONTENTS}"
+            grep -qE '(^|/)mods/bundled/br2\.enhancement\.widescreen/1\.0\.0/manifest\.toml$' "${CONTENTS}"
+            rm -f "${CONTENTS}"
+            echo "verified package contents: ${ZIP}"
+          done
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4

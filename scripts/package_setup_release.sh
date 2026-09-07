@@ -53,6 +53,7 @@ exec bash "${PACKAGER}" \
   --project-file VERSION \
   --project-file codegen_setup.c \
   --project-file codegen_setup.h \
+  --project-file assets/psxrecomp.ico \
   --project-file README.md \
   --project-dir seeds \
   --project-dir src \

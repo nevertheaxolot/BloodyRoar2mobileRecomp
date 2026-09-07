@@ -77,7 +77,7 @@ jobs:
             libsdl2-dev libgl1-mesa-dev libxtst-dev \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
             libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev \
-            libasound2-dev libpulse-dev libudev-dev zip \
+            libasound2-dev libpulse-dev libudev-dev zip unzip \
             libvulkan-dev glslc ccache
 
       - name: Cache SDL3 source
@@ -156,6 +156,21 @@ jobs:
           export RELEASE_VERSION
           scripts/package_setup_release.sh build-ci linux-x64 build-recompiler
           ls -la dist/
+
+      - name: Verify setup package contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP="$(find dist -maxdepth 1 -type f -name 'br2-*-linux-x64.zip' -print -quit)"
+          test -n "${ZIP}" || { echo "::error::setup zip was not produced"; exit 1; }
+          CONTENTS="$(mktemp)"
+          trap 'rm -f "${CONTENTS}"' EXIT
+          unzip -Z1 "${ZIP}" >"${CONTENTS}"
+          grep -qE '(^|/)BloodyRoar2_Recompiled$' "${CONTENTS}"
+          grep -qE '(^|/)assets/psxrecomp\.ico$' "${CONTENTS}"
+          grep -qE '(^|/)psxrecomp/CMakeLists\.txt$' "${CONTENTS}"
+          grep -qE '(^|/)psxrecomp/tools/package_setup_host\.sh$' "${CONTENTS}"
+          echo "setup package contents verified: ${ZIP}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -114,8 +114,13 @@ To play:
      (The launcher needs zenity or kdialog installed for the file picker:
       sudo apt install zenity, or kdialog on KDE.)
 
-Mods (launcher -> Mods tab): widescreen, skip intro FMVs, CD speed,
-fast loading, PGXP.
+Mods (launcher -> Mods tab): widescreen, skip intro FMVs, unlock all content,
+turbo mode, CD speed, fast loading and PGXP. All mods are disabled by default.
+
+Linux graphics and audio use the system's OpenGL/Vulkan and SDL dependencies.
+On Debian/Ubuntu, install the runtime libraries with:
+  sudo apt install libgl1 libvulkan1 libx11-6 libxext6 libxrandr2 libxcursor1 \
+    libxfixes3 libxi6 libxss1 libasound2 libpulse0 libudev1 zenity
 
 The game's copyrighted data is not included - supply your own disc image.
 EOF

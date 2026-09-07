@@ -228,9 +228,9 @@ screen_h_imms  = ["0x1E0"]
 En `CMakeLists.txt`, tras el staging del catálogo builtin del framework, se
 **eliminan** los mods que no pertenecen a Bloody Roar II:
 
-- `psx.enhancement.custom-combat` — combate de Final Bout (hardcodeado a ese
+ - `psx.enhancement.custom-combat` — combate de Final Bout (hardcodeado a ese
   título; su bridge de invitado es específico de Final Bout).
-- `psx.enhancement.widescreen` — stub genérico; se sustituye por el
+ - `psx.enhancement.widescreen` — stub genérico; se sustituye por el
   `br2.enhancement.widescreen` propio.
 
 Y se despliega `mods/preloaded` sobre el árbol, quedando el catálogo final:

@@ -25,8 +25,8 @@ into a standalone executable — this is a real PC port, not an emulator.
 
 1. **Grab a release** — download the zip for your region and OS from
    [Releases](https://github.com/novapowers0/BloodyRoar2Recomp/releases/latest)
-   (Windows `BloodyRoar2-EU-v0.5.0.zip` / `BloodyRoar2-US-v0.5.0.zip`, or the
-   `...-Linux-v0.5.0.zip` variants).
+   (Windows `BloodyRoar2-EU-v0.5.1.zip` / `BloodyRoar2-US-v0.5.1.zip`, or the
+   `...-Linux-v0.5.1.zip` variants).
 2. **Unzip anywhere** — each zip is self-contained (executable, OpenBIOS,
    launcher assets and mods included).
 3. **Add your disc image** — put your legally owned *Bloody Roar II* `.bin`/`.cue`
@@ -95,10 +95,10 @@ legally owned disc image beside it and pick it in the launcher.
 
 | Zip | OS | Region | Executable |
 |---|---|---|---|
-| `BloodyRoar2-EU-v0.5.0.zip` | Windows | Europe | `BloodyRoar2_Recompiled.exe` |
-| `BloodyRoar2-US-v0.5.0.zip` | Windows | USA | `BloodyRoar2_Recompiled_USA.exe` |
-| `BloodyRoar2-EU-Linux-v0.5.0.zip` | **Linux** | Europe | `BloodyRoar2_Recompiled` |
-| `BloodyRoar2-US-Linux-v0.5.0.zip` | **Linux** | USA | `BloodyRoar2_Recompiled_USA` |
+| `BloodyRoar2-EU-v0.5.1.zip` | Windows | Europe | `BloodyRoar2_Recompiled.exe` |
+| `BloodyRoar2-US-v0.5.1.zip` | Windows | USA | `BloodyRoar2_Recompiled_USA.exe` |
+| `BloodyRoar2-EU-Linux-v0.5.1.zip` | **Linux** | Europe | `BloodyRoar2_Recompiled` |
+| `BloodyRoar2-US-Linux-v0.5.1.zip` | **Linux** | USA | `BloodyRoar2_Recompiled_USA` |
 
 > On Linux, `chmod +x BloodyRoar2_Recompiled` and run it — the zips are named
 > `...-Linux-...` and drop the `.exe` extension.

@@ -281,6 +281,8 @@ jobs:
             grep -qE '(^|/)BloodyRoar2_Recompiled_Japan$' "${CONTENTS}"
             grep -qE '(^|/)game_japan\.toml$' "${CONTENTS}"
             grep -qE '(^|/)bios/openbios\.bin$' "${CONTENTS}"
+            grep -qE '(^|/)assets/psxrecomp\.png$' "${CONTENTS}"
+            grep -qE '(^|/)mods/bundled/br2\.enhancement\.widescreen/1\.0\.0/manifest\.toml$' "${CONTENTS}"
             rm -f "${CONTENTS}"
             echo "verified package contents: ${ZIP}"
           fi

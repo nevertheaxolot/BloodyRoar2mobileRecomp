@@ -35,6 +35,24 @@ track (Track 01) as a `.bin` plus its `.cue`.
 - Config: `game_us.toml`; seeds `seeds/ghidra_funcs_us.txt`
 - Build target: `psx-runtime-us` → `BloodyRoar2_Recompiled_USA`
 
+### Japan/Asia (SLPS-01842) - isolated bring-up
+
+- Expected path: `disc/Bloody Roar 2 - Bringer of the New Age (Japan, Asia).bin`
+- Data track size: **552,101,424 bytes** (552.1 MB)
+- MD5: `e05681ff95d218656b95f5acc5d825dd`
+- SHA-1: `2274696c309bdf9b4770d853489d4ecfdbaa59d0`
+- SHA-256: `2dd8ae64474419aa85e7df04024af00898c3eb78ced4f370b985c76662e45892`
+- Volume ID: `SLPS_01842`
+- Serial: `SLPS-01842`
+- Boot EXE: `SLPS_018.42` (load `0x8011E800`, entry `0x80125F34`)
+- Text size: `0x0009F800`; stack base: `0x801FFFF0`
+- Config: `game_japan.toml`; seeds `seeds/ghidra_funcs_japan.txt`
+- Build target: `psx-runtime-japan` -> `BloodyRoar2_Recompiled_Japan`
+
+This target is opt-in (`-DBR2_BUILD_JAPAN=ON`) and is not part of a public
+release yet. The local technical sample is a one-track CUE; a full multi-track
+dump is required before claiming netplay/catalog parity.
+
 > The `.bin` / `.cue` are **copyrighted** and are **not distributed** by this
 > project. You must dump them yourself from the original PlayStation discs you
 > own (a Redump-format dump with a full multi-track cue is recommended). These

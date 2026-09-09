@@ -1,0 +1,45 @@
+{
+  "format_version": 1,
+  "game": {
+    "name": "BloodyRoar2",
+    "id": "SLPS-01842",
+    "boot_exe": "SLPS_018.42"
+  },
+  "marketing": {
+    "description": "Native PC port",
+    "publisher": "Hudson Soft",
+    "year": "1998",
+    "region": "Japan/Asia",
+    "players": 2
+  },
+  "rom_identity": {
+    "cue_name": "Bloody Roar 2 - Bringer of the New Age (Japan, Asia).cue",
+    "bin_name": "Bloody Roar 2 - Bringer of the New Age (Japan, Asia).bin",
+    "track_counts": [1],
+    "require_cue": true,
+    "data_track": {
+      "size": 552101424,
+      "md5": "e05681ff95d218656b95f5acc5d825dd",
+      "sha1": "2274696c309bdf9b4770d853489d4ecfdbaa59d0",
+      "sha256": "2dd8ae64474419aa85e7df04024af00898c3eb78ced4f370b985c76662e45892"
+    },
+    "disc_fp": "fb8bc88c65c75b9b58192af9ae821b8232e06b75bed8fc3747c7833947759def"
+  },
+  "exe": {
+    "load_address": "0x8011E800",
+    "entry_pc": "0x80125F34",
+    "text_size": "0x0009F800",
+    "stack_base": "0x801FFFF0"
+  },
+  "seeds": {
+    "count": 1009,
+    "source": "boot_exe_jal"
+  },
+  "warnings": [
+    "cue has only 1 TRACK - Track-01-only dumps are for offline bring-up and are not sufficient for multi-track netplay gates."
+  ],
+  "notes": [
+    "Identity measured from the local Japan/Asia dump with psxrecomp probe_disc.py.",
+    "Japan/Asia generated C and enhancement offsets are intentionally not claimed by this metadata alone."
+  ]
+}

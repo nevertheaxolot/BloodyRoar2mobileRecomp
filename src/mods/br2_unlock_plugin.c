@@ -50,6 +50,9 @@ static const uint32_t kUnlockAddrs[] = {
     0x801C1002u, /* all pictures   */
     0x801C1004u, /* all pictures   */
 };
+#elif defined(BR2_REGION) && BR2_REGION == 3 /* NTSCJ */
+/* Japan/Asia offsets are intentionally disabled until SLPS-01842 is audited. */
+#define BR2_UNLOCK_UNVERIFIED_REGION 1
 #else /* PAL (default) */
 static const uint32_t kUnlockAddrs[] = {
     0x801C124Cu, /* all characters */
@@ -66,9 +69,13 @@ static const uint32_t kUnlockAddrs[] = {
 
 static void br2_unlock_all_vblank(void) {
     uint32_t i;
+#if defined(BR2_UNLOCK_UNVERIFIED_REGION)
+    return;
+#else
     if (!psx_mod_game_started()) return;
     for (i = 0u; i < sizeof(kUnlockAddrs) / sizeof(kUnlockAddrs[0]); i++)
         (void)psx_mod_write_half(kUnlockAddrs[i], 0xFFFFu);
+#endif
 }
 
 PSX_MOD_CONSTRUCTOR(br2_register_unlock_all) {

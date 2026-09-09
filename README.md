@@ -13,7 +13,7 @@ into a standalone executable — this is a real PC port, not an emulator.
 | | |
 |---|---|
 | **Players** | 2 (versus) |
-| **Regions** | Europe (SLES-01722) + USA (SCUS-94424) |
+| **Regions** | Europe (SLES-01722) + USA (SCUS-94424); Japan/Asia (SLPS-01842) in isolated bring-up |
 | **Publishers** | Virgin Interactive (EU) / Sony Computer Entertainment (US) |
 | **Year** | 1998 (US) / 1999 (EU) |
 | **Genre** | 3D fighting |

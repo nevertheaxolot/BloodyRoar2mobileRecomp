@@ -73,6 +73,7 @@ starvation_dump.jsonl
 /*.png
 !/catalog_identity.json
 !/catalog_identity_us.json
+!/catalog_identity_japan.json
 !/disc_probe.json
 !/disc_probe_us.json
 

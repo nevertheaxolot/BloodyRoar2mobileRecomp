@@ -1,0 +1,53 @@
+# Bloody Roar II — Japan/Asia (SLPS-01842), isolated bring-up target.
+# This is a distinct NTSC-J executable and must not reuse EU/USA generated C.
+
+[game]
+name = "Bloody Roar II (Japan/Asia)"
+id = "SLPS-01842"
+region = "Japan"
+players = 2
+exe = "disc/SLPS_018.42"
+disc = "disc/Bloody Roar 2 - Bringer of the New Age (Japan, Asia).cue"
+load_address = "0x8011E800"
+entry_pc = "0x80125F34"
+text_size = "0x0009F800"
+stack_base = "0x801FFFF0"
+
+[prepare_disc]
+out_dir = "disc"
+bin_name = "Bloody Roar 2 - Bringer of the New Age (Japan, Asia).bin"
+cue_name = "Bloody Roar 2 - Bringer of the New Age (Japan, Asia).cue"
+boot_exe = "SLPS_018.42"
+known_sizes = [552101424]
+known_md5 = [
+  "e05681ff95d218656b95f5acc5d825dd",
+]
+known_sha1 = [
+  "2274696c309bdf9b4770d853489d4ecfdbaa59d0",
+]
+
+[recompiler]
+seeds = "seeds/ghidra_funcs_japan.txt"
+out_dir = "generated"
+strict = true
+
+[runtime]
+window_title = "Bloody Roar II Recompiled (Japan/Asia)"
+memcard_dir = "saves-japan"
+bios_hle = true
+
+[video]
+renderer = "opengl"
+aspect_ratio = "4:3"
+offer_vulkan = true
+
+[controller]
+default_mode = "digital"
+lock_mode = true
+
+# The Japan/Asia widescreen and address-based enhancement sites are intentionally
+# not advertised until they are independently verified against SLPS_01842.
+[netplay]
+require_cue = true
+required_tracks = 1
+required_disc_fp = "fb8bc88c65c75b9b58192af9ae821b8232e06b75bed8fc3747c7833947759def"

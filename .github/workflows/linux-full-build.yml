@@ -1,15 +1,20 @@
 # Linux FULL (ready-to-play) build for Bloody Roar II Recompiled.
 #
 # Unlike the "setup-host" build (which ships only the launcher + Generate &
-# rebuild wizard), this workflow produces the complete game binaries with the
-# recompiled game code compiled in - the Linux equivalent of the Windows zips:
-# download -> pick your disc -> play. No toolchain needed on the player side.
+# rebuild wizard), this workflow produces the complete, self-contained game
+# binary with the recompiled game code compiled in - the Linux equivalent of the
+# Windows zip: download -> pick your disc -> play. No toolchain needed on the
+# player side.
 #
-# The recompiled game C (generated/SLES_017.22_*.c + SCUS_944.24_*.c) is
-# derived from the game's copyrighted disc, so it is NEVER committed to this
-# public repo. It is injected at build time from a PRIVATE repository via a
-# secret PAT (see the README / Actions setup notes). The OpenBIOS backend is
-# open-source (MIT) and ships inside the psxrecomp submodule.
+# The single universal executable links the EU, USA and Japan/Asia images (each
+# emitted under its own symbol prefix) and selects one from the mounted disc's
+# SYSTEM.CNF at boot.
+#
+# The recompiled game C (generated/SLES_017.22_*.c + SCUS_944.24_*.c +
+# SLPS_018.42_*.c) is derived from the game's copyrighted disc, so it is NEVER
+# committed to this public repo. It is injected at build time from a PRIVATE
+# repository via a secret PAT (see the README / Actions setup notes). The
+# OpenBIOS backend is open-source (MIT) and ships inside the psxrecomp submodule.
 #
 # Manual trigger only (heavy build; requires the generated-repo secret).
 
@@ -19,15 +24,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version for the artifacts (e.g. 0.5.0). Empty = use VERSION file.'
+        description: 'Version for the artifacts (e.g. 0.6.3). Empty = use VERSION file.'
         required: false
         type: string
         default: ''
-      build_japan:
-        description: 'Also build and verify the isolated Japan/Asia target'
-        required: false
-        type: boolean
-        default: false
 
 concurrency:
   group: linux-full-build-${{ github.run_id }}
@@ -119,33 +119,24 @@ jobs:
           echo "restored game generated C:"
           ls generated | sed -n '1,6p'
 
-      - name: Verify game generated C present
+      - name: Verify game generated C present (EU + USA + Japan)
         shell: bash
         run: |
           set -euo pipefail
-          test -f generated/SLES_017.22_dispatch.c || { echo "::error::missing SLES_017.22_dispatch.c"; exit 1; }
-          test -f generated/SCUS_944.24_dispatch.c || { echo "::error::missing SCUS_944.24_dispatch.c"; exit 1; }
-          test -f generated/SLES_017.22_decls.h || { echo "::error::missing SLES_017.22_decls.h"; exit 1; }
-          test -f generated/SCUS_944.24_decls.h || { echo "::error::missing SCUS_944.24_decls.h"; exit 1; }
-          EU_COUNT="$(find generated -maxdepth 1 -type f -name 'SLES_017.22_full_*.c' | wc -l)"
-          US_COUNT="$(find generated -maxdepth 1 -type f -name 'SCUS_944.24_full_*.c' | wc -l)"
-          test "${EU_COUNT}" -gt 0 || { echo "::error::no EU generated C translation units"; exit 1; }
-          test "${US_COUNT}" -gt 0 || { echo "::error::no USA generated C translation units"; exit 1; }
-          echo "generated C verified: EU=${EU_COUNT} translation units, USA=${US_COUNT} translation units"
-          if [[ "${{ github.event.inputs.build_japan }}" == "true" ]]; then
-            test -f generated/SLPS_018.42_dispatch.c || { echo "::error::missing SLPS_018.42_dispatch.c"; exit 1; }
-            test -f generated/SLPS_018.42_decls.h || { echo "::error::missing SLPS_018.42_decls.h"; exit 1; }
-            JP_COUNT="$(find generated -maxdepth 1 -type f -name 'SLPS_018.42_full_*.c' | wc -l)"
-            test "${JP_COUNT}" -gt 0 || { echo "::error::no Japan generated C translation units"; exit 1; }
-            echo "generated C verified: Japan=${JP_COUNT} translation units"
-          fi
-          echo "game generated C restored and verified"
+          for S in SLES_017.22 SCUS_944.24 SLPS_018.42; do
+            test -f "generated/${S}_dispatch.c" || { echo "::error::missing ${S}_dispatch.c"; exit 1; }
+            test -f "generated/${S}_decls.h" || { echo "::error::missing ${S}_decls.h"; exit 1; }
+            N="$(find generated -maxdepth 1 -type f -name "${S}_full_*.c" | wc -l)"
+            test "${N}" -gt 0 || { echo "::error::no ${S} generated C translation units"; exit 1; }
+            echo "${S}: ${N} translation units"
+          done
+          echo "universal build: all three region generated C sets present"
 
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: linux-full-${{ steps.version.outputs.version }}
-          max-size: 800M
+          max-size: 1200M
 
       - name: Build BIOS recompiler (emitter)
         shell: bash
@@ -164,7 +155,7 @@ jobs:
           test -f psxrecomp/generated/OpenBIOS_dispatch.c || { echo "::error::OpenBIOS_dispatch.c not generated"; exit 1; }
           echo "OpenBIOS backend regenerated"
 
-      - name: Configure full game build
+      - name: Configure universal game build
         shell: bash
         env:
           VULKAN_SDK: /usr
@@ -175,59 +166,34 @@ jobs:
             EXTRA+=("-DGLSLC_EXE=$(command -v glslc)")
           fi
           EXTRA+=("-DFETCHCONTENT_SOURCE_DIR_SDL3=${PSX_SDL3_SOURCE_DIR}")
-          JAPAN=(-DBR2_BUILD_JAPAN=OFF)
-          if [[ "${{ github.event.inputs.build_japan }}" == "true" ]]; then
-            JAPAN=(-DBR2_BUILD_JAPAN=ON)
-          fi
           cmake -S . -B build-ci -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DPSX_SETUP_WIZARD=ON \
             -DPSX_GAME_VERSION="${RELEASE_VERSION}" \
-            "${JAPAN[@]}" \
+            -DBR2_BUILD_UNIVERSAL=ON \
             "${EXTRA[@]}" 2>&1 | tee build-ci-configure.log
           if ! grep -q 'Vulkan backend: headers' build-ci-configure.log; then
             echo "::error::CMake did not enable PSX_HAVE_VULKAN (see configure log)"
             exit 1
           fi
 
-      - name: Build game binaries
+      - name: Build universal binary
         shell: bash
         run: |
           set -euo pipefail
-          cmake --build build-ci --target psx-runtime -j"$(nproc)"
-          cmake --build build-ci --target psx-runtime-us -j"$(nproc)"
-          if [[ "${{ github.event.inputs.build_japan }}" == "true" ]]; then
-            cmake --build build-ci --target psx-runtime-japan -j"$(nproc)"
-          fi
+          cmake --build build-ci --target psx-runtime-universal -j"$(nproc)"
 
-      - name: Verify binaries and version pin
+      - name: Verify binary and version pin
         shell: bash
         run: |
           set -euo pipefail
-          test -x build-ci/BloodyRoar2_Recompiled || { echo "::error::EU binary missing"; exit 1; }
-          test -x build-ci/BloodyRoar2_Recompiled_USA || { echo "::error::US binary missing"; exit 1; }
-          file build-ci/BloodyRoar2_Recompiled build-ci/BloodyRoar2_Recompiled_USA
+          test -x build-ci/BloodyRoar2_Recompiled || { echo "::error::universal binary missing"; exit 1; }
+          file build-ci/BloodyRoar2_Recompiled
           file build-ci/BloodyRoar2_Recompiled | grep -q 'ELF 64-bit.*x86-64' || {
-            echo "::error::EU binary is not a Linux x86-64 ELF executable"; exit 1;
-          }
-          file build-ci/BloodyRoar2_Recompiled_USA | grep -q 'ELF 64-bit.*x86-64' || {
-            echo "::error::US binary is not a Linux x86-64 ELF executable"; exit 1;
+            echo "::error::binary is not a Linux x86-64 ELF executable"; exit 1;
           }
           if ldd build-ci/BloodyRoar2_Recompiled | grep -q 'not found'; then
-            echo "::error::EU binary has unresolved shared-library dependencies"; exit 1;
-          fi
-          if ldd build-ci/BloodyRoar2_Recompiled_USA | grep -q 'not found'; then
-            echo "::error::US binary has unresolved shared-library dependencies"; exit 1;
-          fi
-          if [[ "${{ github.event.inputs.build_japan }}" == "true" ]]; then
-            test -x build-ci/BloodyRoar2_Recompiled_Japan || { echo "::error::Japan binary missing"; exit 1; }
-            file build-ci/BloodyRoar2_Recompiled_Japan
-            file build-ci/BloodyRoar2_Recompiled_Japan | grep -q 'ELF 64-bit.*x86-64' || {
-              echo "::error::Japan binary is not a Linux x86-64 ELF executable"; exit 1;
-            }
-            if ldd build-ci/BloodyRoar2_Recompiled_Japan | grep -q 'not found'; then
-              echo "::error::Japan binary has unresolved shared-library dependencies"; exit 1;
-            fi
+            echo "::error::binary has unresolved shared-library dependencies"; exit 1;
           fi
           for d in build-ci build-ci/Release; do
             if [[ -f "${d}/psx_game_version.txt" ]]; then
@@ -241,7 +207,7 @@ jobs:
             fi
           done
 
-      - name: Package Linux release zips (ready-to-play)
+      - name: Package Linux release zip (ready-to-play)
         shell: bash
         run: |
           set -euo pipefail
@@ -253,47 +219,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for ZIP in dist/BloodyRoar2-EU-linux-x64-*.zip dist/BloodyRoar2-US-linux-x64-*.zip; do
-            test -f "${ZIP}" || { echo "::error::missing package ${ZIP}"; exit 1; }
-            CONTENTS="$(mktemp)"
-            unzip -Z1 "${ZIP}" >"${CONTENTS}"
-            case "${ZIP}" in
-              *EU*)
-                grep -qE '(^|/)BloodyRoar2_Recompiled$' "${CONTENTS}"
-                grep -qE '(^|/)game\.toml$' "${CONTENTS}"
-                ;;
-              *US*)
-                grep -qE '(^|/)BloodyRoar2_Recompiled_USA$' "${CONTENTS}"
-                grep -qE '(^|/)game_us\.toml$' "${CONTENTS}"
-                ;;
-            esac
-            grep -qE '(^|/)bios/openbios\.bin$' "${CONTENTS}"
-            grep -qE '(^|/)assets/psxrecomp\.png$' "${CONTENTS}"
-            grep -qE '(^|/)mods/bundled/br2\.enhancement\.widescreen/1\.0\.0/manifest\.toml$' "${CONTENTS}"
-            rm -f "${CONTENTS}"
-            echo "verified package contents: ${ZIP}"
-          done
-          if [[ "${{ github.event.inputs.build_japan }}" == "true" ]]; then
-            ZIP="dist/BloodyRoar2-Japan-linux-x64-*.zip"
-            test -f ${ZIP} || { echo "::error::missing Japan package"; exit 1; }
-            CONTENTS="$(mktemp)"
-            unzip -Z1 ${ZIP} >"${CONTENTS}"
-            grep -qE '(^|/)BloodyRoar2_Recompiled_Japan$' "${CONTENTS}"
-            grep -qE '(^|/)game_japan\.toml$' "${CONTENTS}"
-            grep -qE '(^|/)bios/openbios\.bin$' "${CONTENTS}"
-            grep -qE '(^|/)assets/psxrecomp\.png$' "${CONTENTS}"
-            grep -qE '(^|/)mods/bundled/br2\.enhancement\.widescreen/1\.0\.0/manifest\.toml$' "${CONTENTS}"
-            rm -f "${CONTENTS}"
-            echo "verified package contents: ${ZIP}"
-          fi
+          ZIP="$(ls dist/BloodyRoar2-linux-x64-*.zip)"
+          test -f "${ZIP}" || { echo "::error::missing package ${ZIP}"; exit 1; }
+          CONTENTS="$(mktemp)"
+          unzip -Z1 "${ZIP}" >"${CONTENTS}"
+          grep -qE '(^|/)BloodyRoar2/BloodyRoar2_Recompiled$' "${CONTENTS}"
+          grep -qE '(^|/)BloodyRoar2/game\.toml$' "${CONTENTS}"
+          grep -qE '(^|/)BloodyRoar2/bios/openbios\.bin$' "${CONTENTS}"
+          grep -qE '(^|/)BloodyRoar2/assets/psxrecomp\.png$' "${CONTENTS}"
+          grep -qE '(^|/)BloodyRoar2/mods/bundled/br2\.enhancement\.widescreen/1\.0\.0/manifest\.toml$' "${CONTENTS}"
+          rm -f "${CONTENTS}"
+          echo "verified package contents: ${ZIP}"
 
-      - name: Upload Linux artifacts
+      - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: br2-linux-ready-to-play
-          path: |
-            dist/BloodyRoar2-EU-linux-x64-*.zip
-            dist/BloodyRoar2-US-linux-x64-*.zip
-            dist/BloodyRoar2-Japan-linux-x64-*.zip
+          path: dist/BloodyRoar2-linux-x64-*.zip
           if-no-files-found: error
           retention-days: 30

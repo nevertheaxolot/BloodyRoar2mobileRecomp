@@ -12,20 +12,26 @@
 # in. No python / cmake / toolchain is needed to run the result.
 #
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File scripts/package_release.ps1
+#   powershell -ExecutionPolicy Bypass -File scripts/package_release.ps1 [-Build build-universal]
 #
-# Writes: dist/BloodyRoar2-EU/ and dist/BloodyRoar2-US/ (+ a README.txt each).
+# Writes: dist/BloodyRoar2/ (+ README.txt) and dist/BloodyRoar2-v<version>.zip.
+# The build dir must contain the universal exe (BR2_BUILD_UNIVERSAL=ON,
+# target psx-runtime-universal) as BloodyRoar2_Recompiled.exe.
+
+param(
+    [string]$Build = "build-universal"
+)
 
 $ErrorActionPreference = "Stop"
 
 $Root    = Split-Path -Parent $PSScriptRoot
-$Build   = Join-Path $Root "build-release"
+if (-not [System.IO.Path]::IsPathRooted($Build)) { $Build = Join-Path $Root $Build }
 $Dist    = Join-Path $Root "dist"
 $Version = (Get-Content (Join-Path $Root "VERSION") -ErrorAction SilentlyContinue).Trim()
 if (-not $Version) { $Version = "0.1.0" }
 
 if (-not (Test-Path $Build)) {
-    Write-Error "build-release/ not found. Build first: cmake --build build-release"
+    Write-Error "$Build not found. Build first: cmake --build build-universal --target psx-runtime-universal"
 }
 
 function Copy-Tree($src, $dst) {
@@ -71,19 +77,21 @@ function New-ReleaseFolder($exeName, $configName, $folderName, $displayName) {
 $displayName  -  Bloody Roar II Recompiled ($Version)
 ====================================================
 
-This is a self-contained build: the recompiled game code is compiled inside
-the executable, so no Python, compiler or setup step is needed.
+This is a self-contained build: the recompiled game code for every supported
+region is compiled inside the ONE executable, so no Python, compiler or setup
+step is needed.
 
-WHICH FOLDER DO I USE?
-----------------------
-There are TWO separate folders (BloodyRoar2-EU and BloodyRoar2-US) because
-each region is a different disc image (Europe SLES-01722 vs USA SCUS-94424).
-The recompiler translates the machine code of one specific disc into the
-executable, so each exe only works with its own region's disc. They are not
-interchangeable.
+ONE EXECUTABLE, ANY SUPPORTED REGION
+------------------------------------
+The same binary runs the European, USA and Japan/Asia discs. It detects which
+disc you mounted and runs that region's code - you do not pick a build.
 
-  - Have the EUROPEAN disc  -> use BloodyRoar2-EU/BloodyRoar2_Recompiled.exe
-  - Have the AMERICAN disc  -> use BloodyRoar2-US/BloodyRoar2_Recompiled_USA.exe
+  - EUROPE      (SLES-01722)  -> supported
+  - USA         (SCUS-94424)  -> supported
+  - JAPAN/ASIA  (SLPS-01842)  -> experimental (not officially supported)
+
+An unsupported disc fails with a clear identity error instead of running the
+wrong region's code.
 
 To play:
   1. Put your legally owned Bloody Roar II disc image somewhere on this
@@ -95,8 +103,8 @@ To play:
      BIOS. Select your image and play. A retail SCPH-1001.BIN next to the
      exe is used if present; otherwise the bundled OpenBIOS is used.
 
-Mods (launcher -> Mods tab): widescreen, skip intro FMVs, CD speed,
-fast loading, PGXP.
+Mods (launcher -> Mods tab): widescreen, skip intro FMVs, unlock all content,
+turbo mode, CD speed, fast loading, PGXP.
 
 The game's copyrighted data is not included - supply your own disc image.
 "@ | Set-Content -Path (Join-Path $out "README.txt") -Encoding UTF8
@@ -104,9 +112,14 @@ The game's copyrighted data is not included - supply your own disc image.
     Write-Host "Built $out"
 }
 
-New-ReleaseFolder "BloodyRoar2_Recompiled.exe"     "game.toml"    "BloodyRoar2-EU" "Bloody Roar II Recompiled (Europe)"
-New-ReleaseFolder "BloodyRoar2_Recompiled_USA.exe" "game_us.toml" "BloodyRoar2-US" "Bloody Roar II Recompiled (USA)"
+New-ReleaseFolder "BloodyRoar2_Recompiled.exe" "game.toml" "BloodyRoar2" "Bloody Roar II Recompiled (Universal: EU + USA + Japan)"
+
+# Zip the folder for distribution (release asset).
+$zipPath = Join-Path $Dist "BloodyRoar2-v$Version.zip"
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+Compress-Archive -Path (Join-Path $Dist "BloodyRoar2") -DestinationPath $zipPath -Force
+Write-Host "Built $zipPath"
 
 Write-Host ""
-Write-Host "Done. Distribution folders under: $Dist"
-Write-Host "Each is self-contained - drop a disc image beside it and play."
+Write-Host "Done. Distribution folder + zip under: $Dist"
+Write-Host "Self-contained - drop a disc image beside it and play."

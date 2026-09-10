@@ -20,6 +20,10 @@ disc_sha256 = "d3381cc458c16347ea8180386483c42130cb2969f1f818bd76ac7c678d3ee0b8"
 game_id = "SCUS-94424"
 disc_sha256 = "fbad8aef53b160abfcebddced9f9d69dcf39df00d8853b4c11f231b37220fc57"
 
+[[target]]
+game_id = "SLPS-01842"
+disc_sha256 = "2dd8ae64474419aa85e7df04024af00898c3eb78ced4f370b985c76662e45892"
+
 [[feature]]
 id = "widescreen"
 name = "Widescreen"

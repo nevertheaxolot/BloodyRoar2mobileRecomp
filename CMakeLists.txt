@@ -191,7 +191,8 @@ foreach(_BR2_RUNTIME_CONFIG_INDEX RANGE 0 ${_BR2_RUNTIME_CONFIGS_LAST} 2)
     list(GET _BR2_RUNTIME_CONFIGS ${_BR2_RUNTIME_CONFIG_INDEX} _PSX_RUNTIME_TARGET)
     math(EXPR _BR2_RUNTIME_CONFIG_INDEX_NEXT "${_BR2_RUNTIME_CONFIG_INDEX} + 1")
     list(GET _BR2_RUNTIME_CONFIGS ${_BR2_RUNTIME_CONFIG_INDEX_NEXT} _PSX_RUNTIME_CONFIG)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${_PSX_RUNTIME_CONFIG}")
+    if(TARGET ${_PSX_RUNTIME_TARGET} AND
+       EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${_PSX_RUNTIME_CONFIG}")
         add_custom_command(TARGET ${_PSX_RUNTIME_TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${CMAKE_CURRENT_SOURCE_DIR}/${_PSX_RUNTIME_CONFIG}"
@@ -201,7 +202,13 @@ foreach(_BR2_RUNTIME_CONFIG_INDEX RANGE 0 ${_BR2_RUNTIME_CONFIGS_LAST} 2)
     endif()
 endforeach()
 
-foreach(_PSX_RUNTIME_TARGET psx-runtime psx-runtime-us psx-runtime-japan)
+# psx-runtime-japan only exists with -DBR2_BUILD_JAPAN=ON; never reference a
+# target that was not created (add_custom_command(TARGET ...) is fatal).
+set(_BR2_GAME_OPTIONS_TARGETS psx-runtime psx-runtime-us)
+if(BR2_BUILD_JAPAN)
+    list(APPEND _BR2_GAME_OPTIONS_TARGETS psx-runtime-japan)
+endif()
+foreach(_PSX_RUNTIME_TARGET ${_BR2_GAME_OPTIONS_TARGETS})
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/game_options.toml")
         add_custom_command(TARGET ${_PSX_RUNTIME_TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different

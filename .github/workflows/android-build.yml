@@ -1,0 +1,44 @@
+name: Build Android APK
+
+# Se ejecuta cada vez que subes cambios a "main", o manualmente desde la
+# pestaña "Actions" en GitHub (botón "Run workflow").
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar este repo (incluyendo submódulos psxrecomp/recomp-ui)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configurar JDK 17 (requerido por Gradle/Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK + NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar NDK y CMake vía sdkmanager
+        run: |
+          sdkmanager --install "ndk;26.1.10909125"
+          sdkmanager --install "cmake;3.22.1"
+
+      - name: Dar permisos de ejecución a gradlew
+        run: chmod +x android/gradlew
+
+      - name: Compilar APK de depuración
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Subir el APK como artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: BloodyRoar2Recomp-android-debug
+          path: android/app/build/outputs/apk/debug/*.apk

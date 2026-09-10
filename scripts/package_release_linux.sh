@@ -88,18 +88,21 @@ package() { # package <exe-name> <config-file> <folder-name> <display-name>
 ${display}  -  Bloody Roar II Recompiled (${VERSION})
 ====================================================
 
-This is a self-contained Linux build: the recompiled game code is compiled
-inside the executable, so no Python, compiler or setup step is needed.
+This is a self-contained Linux build: the recompiled game code for every
+supported region is compiled inside the ONE executable, so no Python, compiler
+or setup step is needed.
 
-WHICH FOLDER DO I USE?
-----------------------
-Each folder is tied to one specific disc image. The recompiler translates the
-machine code of that disc into the executable, so binaries are not
-interchangeable between regions.
+ONE EXECUTABLE, ANY SUPPORTED REGION
+------------------------------------
+The same binary runs the European, USA and Japan/Asia discs. It detects which
+disc you mounted and runs that region's code - you do not pick a build.
 
-   - Have the EUROPEAN disc  -> use BloodyRoar2-EU/BloodyRoar2_Recompiled
-   - Have the AMERICAN disc  -> use BloodyRoar2-US/BloodyRoar2_Recompiled_USA
-   - Have the JAPAN/ASIA disc -> use BloodyRoar2-Japan/BloodyRoar2_Recompiled_Japan
+   - EUROPE      (SLES-01722)  -> supported
+   - USA         (SCUS-94424)  -> supported
+   - JAPAN/ASIA  (SLPS-01842)  -> experimental (not officially supported)
+
+An unsupported disc fails with a clear identity error instead of running the
+wrong region's code.
 
 To play:
   1. Put your legally owned Bloody Roar II disc image somewhere on this
@@ -131,12 +134,7 @@ EOF
 }
 
 mkdir -p "${DIST}"
-package "BloodyRoar2_Recompiled"     "game.toml"    "BloodyRoar2-EU" "Bloody Roar II Recompiled (Europe)"
-package "BloodyRoar2_Recompiled_USA" "game_us.toml" "BloodyRoar2-US" "Bloody Roar II Recompiled (USA)"
+package "BloodyRoar2_Recompiled" "game.toml" "BloodyRoar2" "Bloody Roar II Recompiled (Universal: EU + USA + Japan)"
 
-if [[ -f "${BUILD_DIR}/BloodyRoar2_Recompiled_Japan" ]]; then
-  package "BloodyRoar2_Recompiled_Japan" "game_japan.toml" "BloodyRoar2-Japan" "Bloody Roar II Recompiled (Japan/Asia)"
-fi
-
-echo "Done. Linux release folders under: ${DIST}"
-echo "Each is self-contained - drop a disc image beside it and play."
+echo "Done. Linux release folder under: ${DIST}"
+echo "Self-contained - drop a disc image beside it and play."

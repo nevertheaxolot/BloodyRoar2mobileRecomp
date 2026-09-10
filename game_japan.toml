@@ -30,6 +30,19 @@ known_sha1 = [
 seeds = "seeds/ghidra_funcs_japan.txt"
 out_dir = "generated"
 strict = true
+# Namespace this region's generated symbols so EU/USA/Japan link into one
+# universal exe. One distinct prefix per region; see game.toml/game_us.toml.
+symbol_prefix = "br2jp_"
+
+# Static audit of the generated C (tools/codegen_audit_game.py --config game_japan.toml).
+[audit]
+function_starts = "seeds/ghidra_funcs_japan.txt"
+
+[[audit.regions]]
+name = "text"
+rom_start = "0x0"
+rom_end = "0x9F800"
+vaddr_base = "0x8011E800"
 
 [runtime]
 window_title = "Bloody Roar II Recompiled (Japan/Asia)"
@@ -41,12 +54,24 @@ renderer = "opengl"
 aspect_ratio = "4:3"
 offer_vulkan = true
 
+[widescreen]
+gte_game_mode = true
+squash = true
+native_wide = false
+precise_nclip = true
+offer = true
+offer_ultrawide = true
+adaptive_view = true
+
+[widescreen.cull]
+auto_screen_x = true
+screen_w_imms = ["0x200"]
+screen_h_imms = ["0x1E0"]
+
 [controller]
 default_mode = "digital"
 lock_mode = true
 
-# The Japan/Asia widescreen and address-based enhancement sites are intentionally
-# not advertised until they are independently verified against SLPS_01842.
 [netplay]
 require_cue = true
 required_tracks = 1

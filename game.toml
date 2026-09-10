@@ -31,6 +31,19 @@ known_sha1 = [
 seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
 strict = true
+# Namespace this region's generated symbols so EU/USA/Japan link into one
+# universal exe. One distinct prefix per region; see game_us.toml/game_japan.toml.
+symbol_prefix = "br2eu_"
+
+# Static audit of the generated C (tools/codegen_audit_game.py --config game.toml).
+[audit]
+function_starts = "seeds/ghidra_funcs.txt"
+
+[[audit.regions]]
+name = "text"
+rom_start = "0x0"
+rom_end = "0xA0800"
+vaddr_base = "0x8011E800"
 
 [runtime]
 window_title = "Bloody Roar II Recompiled"

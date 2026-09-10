@@ -58,7 +58,13 @@ else()
     set(_BR2_EU_EXE_NAME "BloodyRoar2_Recompiled")
 endif()
 
+# PGXP: compile the PGXP_*() hook calls the recompiler emits (they are no-ops
+# unless the PGXP mod is enabled) so the advertised psx.enhancement.pgxp mod has
+# full dataflow coverage instead of the base build's reduced tier. The mod is
+# default-off, so the faithful floor is unchanged; the single target keeps its
+# name (only the PSX_PGXP_VARIANT clone is suffixed).
 psxrecomp_add_game_runtime(psx-runtime
+    PGXP
     ENABLE_NETPLAY_IF_PRESENT
     ENABLE_SETUP_WIZARD
     NETPLAY_LOBBY_URL "ws://netplay.retcomm.net:8765"
@@ -84,6 +90,7 @@ psxrecomp_add_game_runtime(psx-runtime
 target_compile_definitions(psx-runtime PRIVATE PSX_GAME_BACKEND_REGISTRY=1)
 
 psxrecomp_add_game_runtime(psx-runtime-us
+    PGXP
     ENABLE_NETPLAY_IF_PRESENT
     ENABLE_SETUP_WIZARD
     NETPLAY_LOBBY_URL "ws://netplay.retcomm.net:8765"
@@ -107,6 +114,7 @@ target_compile_definitions(psx-runtime-us PRIVATE PSX_GAME_BACKEND_REGISTRY=1)
 
 if(BR2_BUILD_JAPAN)
     psxrecomp_add_game_runtime(psx-runtime-japan
+        PGXP
         ENABLE_NETPLAY_IF_PRESENT
         ENABLE_SETUP_WIZARD
         NETPLAY_LOBBY_URL "ws://netplay.retcomm.net:8765"
@@ -139,6 +147,7 @@ if(BR2_BUILD_UNIVERSAL)
             "codegen for game_us.toml and game_japan.toml first.")
     endif()
     psxrecomp_add_game_runtime(psx-runtime-universal
+        PGXP
         ENABLE_NETPLAY_IF_PRESENT
         ENABLE_SETUP_WIZARD
         NETPLAY_LOBBY_URL "ws://netplay.retcomm.net:8765"

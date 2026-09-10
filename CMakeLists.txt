@@ -49,12 +49,21 @@ option(BR2_BUILD_UNIVERSAL "Build the combined EU+USA+Japan universal target" OF
 # CODEGEN_SETUP_SOURCES — the wrapper only declares the latter two as
 # multi-value args and would swallow the rest.
 
+# The universal target owns the canonical `BloodyRoar2_Recompiled` name; when it
+# is enabled the isolated EU target is suffixed `_EU` so two CMake targets never
+# produce the same output file (fatal under Ninja).
+if(BR2_BUILD_UNIVERSAL)
+    set(_BR2_EU_EXE_NAME "BloodyRoar2_Recompiled_EU")
+else()
+    set(_BR2_EU_EXE_NAME "BloodyRoar2_Recompiled")
+endif()
+
 psxrecomp_add_game_runtime(psx-runtime
     ENABLE_NETPLAY_IF_PRESENT
     ENABLE_SETUP_WIZARD
     NETPLAY_LOBBY_URL "ws://netplay.retcomm.net:8765"
     WINDOW_TITLE "Bloody Roar II Recompiled"
-    EXE_NAME "BloodyRoar2_Recompiled"
+    EXE_NAME "${_BR2_EU_EXE_NAME}"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     MAX_PLAYERS 2
     APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/assets/psxrecomp.ico"

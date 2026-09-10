@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.br2recomp.android'
+    compileSdk 34
+    ndkVersion "26.1.10909125"
+
+    defaultConfig {
+        applicationId "com.br2recomp.android"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "0.1-scaffold"
+
+        externalNativeBuild {
+            cmake {
+                // ANDROID_STL=c++_shared porque psxrecomp usa C++ en runtime
+                arguments "-DANDROID_STL=c++_shared"
+                cppFlags "-std=c++17"
+            }
+        }
+        ndk {
+            // Empezamos solo con arm64 (99% de celulares modernos) para
+            // acelerar la primera compilación de prueba en Actions.
+            abiFilters "arm64-v8a"
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -7,7 +7,7 @@ description = "Renders Bloody Roar II with a wider field of view using the game'
 resolver = "declarative"
 save_compatibility = "shared"
 
-# Both regions of Bloody Roar II are covered by this package. The GTE squash +
+# Every covered region of Bloody Roar II is targeted by this package. The GTE squash +
 # present-stretch widescreen path is chosen over a RAM/GPU projection patch
 # (DuckStation's 0x1333 hack) because it covers every renderer uniformly and
 # keeps the game's screen-bounds culls aligned via the codegen cull sites.

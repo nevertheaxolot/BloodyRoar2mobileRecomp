@@ -7,7 +7,7 @@ description = "Automatic skipping of Bloody Roar II's intro FMVs so boot reaches
 resolver = "declarative"
 save_compatibility = "shared"
 
-# Both regions of Bloody Roar II are covered. Auto-skip FMV is presentation
+# Every covered region of Bloody Roar II is targeted. Auto-skip FMV is presentation
 # only: it ends intro movies the game's own way the instant a streaming FMV is
 # detected, so guest VBlank, game logic, physics, timers and audio are never
 # touched. 2D copyright logos are not videos and are left unaffected.

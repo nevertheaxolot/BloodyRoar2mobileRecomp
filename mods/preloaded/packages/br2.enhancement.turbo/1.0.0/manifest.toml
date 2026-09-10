@@ -9,7 +9,7 @@ save_compatibility = "shared"
 
 # Turbo is a pure guest-VBlank re-pace via psx_mod_set_native_vblank_rate.
 # It engages at activation (before the window/renderer are created) and applies
-# to both regions. In netplay sessions the host's plan decides: if the host
+# to every covered region. In netplay sessions the host's plan decides: if the host
 # enables turbo, every peer simulates the same turbo cadence.
 
 [[target]]

@@ -98,14 +98,17 @@ runs at `netplay.retcomm.net`.
   Direct IP** for a peer-to-peer session on the same network.
 - **Same disc required**: netplay is dump-strict — every peer must mount the
   same region's `.cue`/`.bin` image geometry. The online gate verifies the TOC
-  fingerprint and track count before a session can start.
+  fingerprint and track count before a session can start, and each region has its
+  own fingerprint, so an EU host and a US guest are never matched. The lobby also
+  advertises the mounted region in the game title.
 - **Same version pin**: peers must run the same release build so generated code
   and the netplay protocol stay compatible. Mixing regions (EU vs US) is not
   supported in one session.
 - **Mods follow the host**: the host's enabled mod plan is published on the
-  lobby and every peer applies it at launch, so the match simulates identically.
-  Guests that lack a host-selected package are warned before the session starts.
-  The unlock-all mod is skipped in netplay sessions.
+  lobby and every peer **adopts that plan at launch** — a peer's own offline mod
+  selection is not merged in — so the match simulates identically. Guests that
+  lack a host-selected package are warned before the session starts. The
+  unlock-all mod is skipped in netplay sessions.
 
 ---
 

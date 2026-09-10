@@ -1,4 +1,0 @@
-git update-index --chmod=+x android/gradlew
-git commit -m "chmod +x android/gradlew"
-git push
-

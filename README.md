@@ -1,8 +1,8 @@
-# Bloody Roar II Recompiled
+# Bloody Roar II Recompiled Mobile
 
-**Native PC port of *Bloody Roar II* for the Sony PlayStation (Windows + Linux).**
+**Native Android port of *Bloody Roar II* for the Sony PlayStation (Windows + Linux + Android).**
 The game's original MIPS machine code is statically recompiled to C and built
-into a standalone executable — this is a real PC port, not an emulator.
+into a standalone executable — this is a real android port, not an emulator.
 
 [![Release](https://img.shields.io/github/v/release/novapowers0/BloodyRoar2Recomp?sort=semver&style=flat-square&color=orange&label=Release)](https://github.com/novapowers0/BloodyRoar2Recomp/releases/latest)
 [![Platform](https://img.shields.io/badge/Platform-Windows_|_Linux-0078D6?style=flat-square)](https://github.com/novapowers0/BloodyRoar2Recomp/releases/latest)

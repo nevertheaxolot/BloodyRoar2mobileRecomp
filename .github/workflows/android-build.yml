@@ -1,0 +1,92 @@
+name: Build Android APK
+
+# Se ejecuta cada vez que subes cambios a "main", o manualmente desde la
+# pestaña "Actions" en GitHub (botón "Run workflow").
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar este repo (incluyendo submódulos psxrecomp/recomp-ui)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configurar JDK 17 (requerido por Gradle/Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK + NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar NDK y CMake vía sdkmanager
+        run: |
+          sdkmanager --install "ndk;26.1.10909125"
+          sdkmanager --install "cmake;3.22.1"
+
+      - name: Generar el wrapper de Gradle (gradlew)
+        # El scaffold no traía gradlew/gradle-wrapper.jar. Las máquinas de
+        # ubuntu-latest ya traen "gradle" instalado, así que lo usamos una
+        # sola vez aquí para generar el wrapper dentro de android/.
+        working-directory: android
+        run: gradle wrapper --gradle-version 8.7
+
+      - name: Dar permisos de ejecución a gradlew
+        run: chmod +x android/gradlew
+
+      - name: Descargar SDL2 (código fuente oficial, licencia zlib)
+        # El CMakeLists.txt del módulo nativo espera encontrar el código
+        # fuente de SDL2 en android/app/src/main/cpp/SDL/. Lo bajamos aquí
+        # directo del repositorio oficial libsdl-org/SDL en cada corrida,
+        # así no hace falta subir manualmente esos archivos al repo.
+        run: |
+          SDL_VERSION="2.30.9"
+          curl -L -o /tmp/SDL2.tar.gz \
+            "https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VERSION}/SDL2-${SDL_VERSION}.tar.gz"
+          mkdir -p /tmp/sdl2-src
+          tar -xzf /tmp/SDL2.tar.gz -C /tmp/sdl2-src --strip-components=1
+          mkdir -p android/app/src/main/cpp/SDL
+          cp -r /tmp/sdl2-src/. android/app/src/main/cpp/SDL/
+
+          # El código C/C++ de SDL2 ya quedó en cpp/SDL/ (para CMake), pero
+          # MainActivity.java importa org.libsdl.app.SDLActivity, que es la
+          # capa Java de SDL2. Esa vive dentro de la subcarpeta
+          # android-project del propio SDL2 y hay que copiarla al árbol de
+          # fuentes Java de nuestra app para que Gradle la compile junto con
+          # nuestras clases.
+          mkdir -p android/app/src/main/java/org/libsdl/app
+          cp -r /tmp/sdl2-src/android-project/app/src/main/java/org/libsdl/app/. \
+            android/app/src/main/java/org/libsdl/app/
+
+      - name: Compilar APK de depuración
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Diagnóstico - listar qué generó realmente Gradle
+        # Paso temporal solo para depurar: si el paso anterior no generó
+        # ningún .apk, esto nos muestra qué hay de verdad en app/build/ (o
+        # si esa carpeta ni existe), sin abortar el workflow.
+        if: always()
+        run: |
+          echo "--- Contenido de android/settings.gradle ---"
+          cat android/settings.gradle 2>/dev/null || echo "NO EXISTE settings.gradle en android/"
+          echo "--- Contenido de android/ (archivos y carpetas, 2 niveles) ---"
+          find android -maxdepth 2
+          echo "--- Contenido de android/app/ (archivos y carpetas, todos los niveles) ---"
+          find android/app 2>/dev/null || echo "NO EXISTE android/app/"
+          echo "--- Buscando cualquier .apk o .aab en todo el repo ---"
+          find . -name "*.apk" -o -name "*.aab"
+          echo "--- Proyectos que Gradle reconoce ---"
+          cd android && ./gradlew projects || true
+
+      - name: Subir el APK como artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: BloodyRoar2Recomp-android-debug
+          path: android/app/build/outputs/apk/debug/*.apk

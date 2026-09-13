@@ -109,6 +109,15 @@ psxrecomp_add_game_runtime(psx-runtime-us
 )
 
 if(ANDROID)
+    # SDL2 para Android: no existe sdl2.pc del sistema en compilacion
+    # cruzada, asi que evitamos el camino de pkg-config de runtime.cmake
+    # fijando SDL2_INCLUDE_DIRS/SDL2_LIBRARIES nosotros mismos, y
+    # compilamos SDL2 como subproyecto CMake normal desde la fuente que
+    # el workflow de Android ya descarga en cpp/SDL/.
+    set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/android/app/src/main/cpp/SDL/include" CACHE PATH "" FORCE)
+    set(SDL2_LIBRARIES SDL2 CACHE STRING "" FORCE)
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/android/app/src/main/cpp/SDL" "${CMAKE_BINARY_DIR}/SDL2_build")
+
     psxrecomp_add_game_runtime(psx-android
         DEFAULT_GAME_CONFIG_PATH "game_us.toml"
         MAX_PLAYERS 2

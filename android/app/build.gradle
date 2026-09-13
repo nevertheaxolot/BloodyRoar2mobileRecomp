@@ -16,9 +16,14 @@ android {
 
         externalNativeBuild {
             cmake {
-                // ANDROID_STL=c++_shared porque psxrecomp usa C++ en runtime
-                arguments "-DANDROID_STL=c++_shared"
-                cppFlags "-std=c++17"
+                // Mismas banderas que ya validamos en el build de Linux:
+                // SDL2 en vez de SDL3, netplay/lobby desactivados (bug
+                // real del proyecto), y solo el target psx-android (evita
+                // que Gradle intente compilar psx-runtime-us/japan/universal).
+                arguments "-DANDROID_STL=c++_shared", "-DPSX_SDL_BACKEND=SDL2", "-DPSX_NETPLAY=OFF", "-DRECOMP_NET_ROOT=/nonexistent"
+                cFlags "-UPSX_HAS_LOBBY_CLIENT"
+                cppFlags "-std=c++17", "-UPSX_HAS_LOBBY_CLIENT"
+                targets "psx-android"
             }
         }
         ndk {
@@ -30,7 +35,10 @@ android {
 
     externalNativeBuild {
         cmake {
-            path "src/main/cpp/CMakeLists.txt"
+            // Apuntamos al CMakeLists.txt real de la raiz del repo (el
+            // mismo que ya compila el juego completo en Linux), no al
+            // scaffold chico que teniamos antes.
+            path "../../CMakeLists.txt"
             version "3.22.1"
         }
     }

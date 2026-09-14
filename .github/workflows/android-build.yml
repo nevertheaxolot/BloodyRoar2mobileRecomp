@@ -64,6 +64,17 @@ jobs:
           cp -r /tmp/sdl2-src/android-project/app/src/main/java/org/libsdl/app/. \
             android/app/src/main/java/org/libsdl/app/
 
+      - name: Generar BIOS OpenBIOS recompilada (necesaria, normalmente gitignored)
+        # psxrecomp/generated/ esta en .gitignore (es salida de build), asi
+        # que hay que regenerar la BIOS en cada corrida, igual que hicimos
+        # a mano en el Codespace. Requiere compilar antes su propio
+        # "recompiler" auxiliar.
+        run: |
+          cmake -S psxrecomp/recompiler -B psxrecomp/recompiler/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build psxrecomp/recompiler/build
+          cd psxrecomp
+          bash tools/regen_bios.sh --config bios/OpenBIOS.toml
+
       - name: Compilar APK de depuración
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace

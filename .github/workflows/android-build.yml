@@ -22,6 +22,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Agregar sdkmanager al PATH
+        # El SDK ya viene preinstalado en ubuntu-latest, pero su carpeta
+        # de herramientas (cmdline-tools) no esta en PATH por defecto.
+        # La buscamos nosotros mismos, sin depender de ninguna accion externa.
+        run: |
+          SDKMANAGER_DIR=$(dirname "$(find /usr/local/lib/android/sdk/cmdline-tools -name sdkmanager -type f | head -n 1)")
+          echo "Encontrado en: $SDKMANAGER_DIR"
+          echo "$SDKMANAGER_DIR" >> "$GITHUB_PATH"
+
       - name: Instalar NDK y CMake vía sdkmanager
         run: |
           sdkmanager --install "ndk;26.1.10909125"

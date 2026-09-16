@@ -1,7 +1,7 @@
 [submodule "psxrecomp"]
 	path = psxrecomp
-	url = https://github.com/novapowers0/psxrecomp.git
-	branch = nova-mods
+	url = https://github.com/nevertheaxolot/psxrecomp-function-android-.git
+	branch = android-changes
 [submodule "recomp-ui"]
 	path = recomp-ui
 	url = https://github.com/mstan/recomp-ui.git

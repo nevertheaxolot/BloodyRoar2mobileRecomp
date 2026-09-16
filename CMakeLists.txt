@@ -14,9 +14,10 @@ if(EXISTS "${PSXRECOMP_ROOT}/lib/recomp-net/CMakeLists.txt")
     set(PSX_NETPLAY ON CACHE BOOL "Netplay runtime wired (recomp-net present)" FORCE)
 endif()
 if(ANDROID)
-    # ENABLE_SETUP_WIZARD (usado por psx-runtime-us, arriba) fuerza
-    # PSX_RECOMP_UI a ON globalmente. Lo forzamos de vuelta a OFF aqui,
-    # porque en Android no existe OpenGL de escritorio para el launcher.
+    # PSX_RECOMP_UI debe apagarse ANTES de que se incluya runtime.cmake
+    # (mas abajo), porque los option() de ahi no reescriben una variable
+    # de cache que ya exista. Si lo hacemos despues, las llamadas
+    # anteriores (psx-runtime, psx-runtime-us) ya corrieron con ON.
     set(PSX_RECOMP_UI OFF CACHE BOOL "" FORCE)
 
     # SDL2 para Android: no existe sdl2.pc del sistema en compilacion

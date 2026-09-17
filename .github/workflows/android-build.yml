@@ -16,6 +16,45 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Parchear recomp-ui para Android (GLES2 en vez de desktop GL)
+        # recomp-ui/cmake/recomp_gl.cmake solo tiene atajo para WIN32 antes de
+        # llamar a find_package(OpenGL REQUIRED). Android no tiene GL de
+        # escritorio/GLX (solo GLES2/3 + EGL vía el NDK), así que ese
+        # find_package siempre falla en Android. Este paso agrega el mismo
+        # tipo de atajo que ya existe para WIN32, pero para ANDROID, usando
+        # GLESv2 + EGL directo.
+        run: |
+          python3 - <<'EOF'
+          path = "recomp-ui/cmake/recomp_gl.cmake"
+          with open(path) as f:
+              content = f.read()
+
+          anchor = """    if(WIN32)
+                  set(${out_var} opengl32 PARENT_SCOPE)
+                  return()
+              endif()
+
+              find_package(OpenGL REQUIRED)"""
+
+          replacement = """    if(WIN32)
+                  set(${out_var} opengl32 PARENT_SCOPE)
+                  return()
+              endif()
+
+              if(ANDROID)
+                  set(${out_var} GLESv2;EGL PARENT_SCOPE)
+                  return()
+              endif()
+
+              find_package(OpenGL REQUIRED)"""
+
+          assert anchor in content, "Anchor no encontrado - el submodulo cambio de contenido"
+          content = content.replace(anchor, replacement, 1)
+          with open(path, "w") as f:
+              f.write(content)
+          print("Parchado OK")
+          EOF
+
       - name: Configurar JDK 17 (requerido por Gradle/Android)
         uses: actions/setup-java@v4
         with:

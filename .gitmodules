@@ -6,3 +6,7 @@
 	path = recomp-ui
 	url = https://github.com/mstan/recomp-ui.git
 	branch = master
+[submodule "libucontext"]
+	path = libucontext
+	url = https://github.com/xpack-3rd-party/libucontext-xpack.git
+	branch = xpack

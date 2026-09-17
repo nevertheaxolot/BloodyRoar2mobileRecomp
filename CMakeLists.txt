@@ -124,6 +124,7 @@ psxrecomp_add_game_runtime(psx-runtime-us
 )
 
 if(ANDROID)
+        add_subdirectory(libucontext)
     psxrecomp_add_game_runtime(psx-android
         DEFAULT_GAME_CONFIG_PATH "game_us.toml"
         MAX_PLAYERS 2
@@ -133,6 +134,7 @@ if(ANDROID)
         CODEGEN_SETUP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/codegen_setup.c"
         PRELOADED_MODS_DIR "${_BR2_PRELOADED}"
     )
+        target_link_libraries(psx-android PRIVATE xpack-3rd-party::libucontext)
 endif()
 
 target_compile_definitions(psx-runtime-us PRIVATE PSX_GAME_BACKEND_REGISTRY=1)

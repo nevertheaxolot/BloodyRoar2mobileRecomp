@@ -127,6 +127,7 @@ if(ANDROID)
     psxrecomp_add_game_runtime(psx-android
         DEFAULT_GAME_CONFIG_PATH "game_us.toml"
         MAX_PLAYERS 2
+        PRELOADED_MODS_DIR NONE
         GEN_MARKER "generated/SCUS_944.24_dispatch.c"
         GEN_FULL_GLOB "generated/SCUS_944.24_full_*.c"
         CODEGEN_SETUP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/codegen_setup.c"

@@ -72,6 +72,23 @@ jobs:
               print("Ya estaba parchado o el texto cambio, revisar a mano")
           PYEOF
 
+      - name: Parchear overlay_loader.c (Clang no acepta declaracion justo tras una etiqueta)
+        run: |
+          python3 - <<'PYEOF'
+          path = "psxrecomp/runtime/src/overlay_loader.c"
+          with open(path) as f:
+              content = f.read()
+          old = "retry_candidates:\n    int head = idx_head(phys);"
+          new = "retry_candidates:;\n    int head = idx_head(phys);"
+          if old in content:
+              content = content.replace(old, new, 1)
+              with open(path, "w") as f:
+                  f.write(content)
+              print("overlay_loader.c parchado OK")
+          else:
+              print("Ya estaba parchado o el texto cambio, revisar a mano")
+          PYEOF
+
       - name: Configurar JDK 17 (requerido por Gradle/Android)
         uses: actions/setup-java@v4
         with:

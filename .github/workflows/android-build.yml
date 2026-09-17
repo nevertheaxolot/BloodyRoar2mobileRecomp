@@ -55,6 +55,23 @@ jobs:
           print("Parchado OK")
           EOF
 
+      - name: Parchear libucontext para usar la arquitectura destino (no la del runner)
+        run: |
+          python3 - <<'PYEOF'
+          path = "libucontext/CMakeLists.txt"
+          with open(path) as f:
+              content = f.read()
+          old = 'set(arch "${CMAKE_HOST_SYSTEM_PROCESSOR}")'
+          new = 'set(arch "${CMAKE_SYSTEM_PROCESSOR}")  # target arch, no la del runner de CI'
+          if old in content:
+              content = content.replace(old, new, 1)
+              with open(path, "w") as f:
+                  f.write(content)
+              print("libucontext/CMakeLists.txt parchado OK")
+          else:
+              print("Ya estaba parchado o el texto cambio, revisar a mano")
+          PYEOF
+
       - name: Configurar JDK 17 (requerido por Gradle/Android)
         uses: actions/setup-java@v4
         with:

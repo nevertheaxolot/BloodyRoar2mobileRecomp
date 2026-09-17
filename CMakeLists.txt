@@ -130,6 +130,7 @@ if(ANDROID)
         GEN_MARKER "generated/SCUS_944.24_dispatch.c"
         GEN_FULL_GLOB "generated/SCUS_944.24_full_*.c"
         CODEGEN_SETUP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/codegen_setup.c"
+        PRELOADED_MODS_DIR "${_BR2_PRELOADED}"
     )
 endif()
 

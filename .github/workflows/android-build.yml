@@ -89,6 +89,23 @@ jobs:
               print("Ya estaba parchado o el texto cambio, revisar a mano")
           PYEOF
 
+      - name: Parchear gpu_gl_renderer.c (glReadBuffer no existe en GLES2)
+        run: |
+          python3 - <<'PYEOF'
+          path = "psxrecomp/runtime/src/gpu_gl_renderer.c"
+          with open(path) as f:
+              content = f.read()
+          old = "    glReadBuffer(GL_BACK);"
+          new = "#ifndef __ANDROID__\n    glReadBuffer(GL_BACK);\n#endif"
+          if old in content and "#ifndef __ANDROID__" not in content:
+              content = content.replace(old, new, 1)
+              with open(path, "w") as f:
+                  f.write(content)
+              print("gpu_gl_renderer.c parchado OK")
+          else:
+              print("Ya estaba parchado o el texto cambio, revisar a mano")
+          PYEOF
+
       - name: Configurar JDK 17 (requerido por Gradle/Android)
         uses: actions/setup-java@v4
         with:

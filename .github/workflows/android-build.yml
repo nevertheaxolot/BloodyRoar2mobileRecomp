@@ -106,6 +106,25 @@ jobs:
               print("Ya estaba parchado o el texto cambio, revisar a mano")
           PYEOF
 
+      - name: Parchear mod_runtime.cpp (buffer de 1MB en el stack causaba SIGSEGV en Android)
+        run: |
+          python3 - <<'PYEOF'
+          path = "psxrecomp/runtime/src/mod_runtime.cpp"
+          with open(path) as f:
+              content = f.read()
+          old = "std::array<uint8_t, 1024 * 1024> buffer{};"
+          new = "auto buffer_holder = std::make_unique<std::array<uint8_t, 256 * 1024>>();\n    auto& buffer = *buffer_holder;"
+          if old in content:
+              content = content.replace(old, new, 1)
+              if "#include <memory>" not in content:
+                  content = content.replace('#include "psx_sha256.h"', '#include "psx_sha256.h"\n#include <memory>', 1)
+              with open(path, "w") as f:
+                  f.write(content)
+              print("mod_runtime.cpp parchado OK")
+          else:
+              print("Ya estaba parchado o el texto cambio, revisar a mano")
+          PYEOF
+
       - name: Configurar JDK 17 (requerido por Gradle/Android)
         uses: actions/setup-java@v4
         with:

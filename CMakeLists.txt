@@ -124,6 +124,7 @@ psxrecomp_add_game_runtime(psx-runtime-us
 )
 
 if(ANDROID)
+        enable_language(ASM)  # necesario para los .S de libucontext (getcontext/setcontext/swapcontext)
         add_subdirectory(libucontext)
     psxrecomp_add_game_runtime(psx-android
         DEFAULT_GAME_CONFIG_PATH "game_us.toml"

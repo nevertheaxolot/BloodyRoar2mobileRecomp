@@ -38,7 +38,7 @@ public class MainActivity extends SDLActivity {
     protected String[] getLibraries() {
         return new String[]{
                 "SDL2",
-                "psx-runtime-android" // nombre de nuestra lib nativa (ver CMakeLists.txt)
+                "psx_android" // nombre real generado por el CMakeLists.txt de la raiz
         };
     }
 }

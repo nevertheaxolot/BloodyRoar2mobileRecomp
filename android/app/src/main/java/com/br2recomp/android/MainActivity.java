@@ -1,6 +1,16 @@
 package com.br2recomp.android;
 
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.OpenableColumns;
+import android.util.Log;
+
 import org.libsdl.app.SDLActivity;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Punto de entrada de la app. SDLActivity (de la librería SDL2 para Android)
@@ -8,37 +18,114 @@ import org.libsdl.app.SDLActivity;
  * eventos, y llama a nuestro código C/C++ igual que lo haría SDL_main en
  * Windows/Linux.
  *
- * IMPORTANTE: esta clase por sí sola NO hace el port. Solo conecta el ciclo
- * de vida de Android con el runtime nativo. El trabajo real está en:
- *   1. src/main/cpp/CMakeLists.txt -> compilar psxrecomp para Android.
- *   2. Cualquier código dentro de psxrecomp que asuma APIs de escritorio
- *      (diálogos de archivo nativos de Windows/GTK, rutas de disco fijas,
- *      etc.) tendrá que revisarse: en Android eso debe resolverse con
- *      el selector de archivos de Android (Storage Access Framework) desde
- *      Java y pasarle la ruta ya resuelta al C++ vía JNI.
+ * getArguments() es el mecanismo oficial de SDL2 para pasar argumentos de
+ * linea de comandos al codigo nativo (SDLActivity los reenvia directo a
+ * SDL_main(argc, argv)). Lo usamos para pasarle --disc <ruta> al runtime de
+ * psxrecomp, igual que se haria en escritorio con "psxrecomp --disc juego.bin".
  */
 public class MainActivity extends SDLActivity {
+
+    private static final String TAG = "BR2Recomp";
 
     private String gameUriString;
 
     @Override
     protected void onCreate(android.os.Bundle savedInstanceState) {
-        // Recibimos la ruta del disco elegida en SelectGameActivity. Todavía
-        // falta pasarla al C++ vía JNI y usarla dentro de
-        // android_main_glue.c (ver el TODO ahí) — por ahora solo la
-        // guardamos para el siguiente paso.
         gameUriString = getIntent().getStringExtra("GAME_URI");
         super.onCreate(savedInstanceState);
     }
 
-    // SDLActivity ya carga las librerías nativas indicadas en getLibraries().
-    // Debe coincidir con el nombre de la librería definida en el
-    // add_library(...) del CMakeLists.txt de cpp/.
     @Override
     protected String[] getLibraries() {
         return new String[]{
                 "SDL2",
                 "psx_android" // nombre real generado por el CMakeLists.txt de la raiz
         };
+    }
+
+    @Override
+    protected String[] getArguments() {
+        if (gameUriString == null) {
+            Log.w(TAG, "getArguments: no se recibio GAME_URI, arrancando sin --disc");
+            return new String[]{};
+        }
+        try {
+            Uri uri = Uri.parse(gameUriString);
+            File localDisc = resolveDiscToLocalFile(uri);
+            if (localDisc == null) {
+                Log.e(TAG, "getArguments: no se pudo resolver el disco a un archivo local");
+                return new String[]{};
+            }
+            Log.i(TAG, "getArguments: --disc " + localDisc.getAbsolutePath());
+            return new String[]{"--disc", localDisc.getAbsolutePath(), "--no-launcher"};
+        } catch (Exception e) {
+            Log.e(TAG, "getArguments: excepcion resolviendo el disco", e);
+            return new String[]{};
+        }
+    }
+
+    /**
+     * psxrecomp usa std::ifstream / std::filesystem sobre rutas normales de
+     * archivo, pero Android nos da una URI tipo content://... al elegir el
+     * disco con el selector de documentos. Copiamos el archivo una sola vez
+     * a almacenamiento privado de la app (getFilesDir()) y reusamos esa
+     * copia en corridas futuras si el tamano coincide, para no copiar 500+
+     * MB en cada arranque.
+     */
+    private File resolveDiscToLocalFile(Uri uri) throws Exception {
+        String displayName = queryDisplayName(uri);
+        if (displayName == null || displayName.isEmpty()) {
+            displayName = "disc.bin";
+        }
+        File outFile = new File(getFilesDir(), displayName);
+
+        long expectedSize = querySize(uri);
+        if (outFile.exists() && expectedSize > 0 && outFile.length() == expectedSize) {
+            Log.i(TAG, "resolveDiscToLocalFile: usando copia en cache (" + outFile.length() + " bytes)");
+            return outFile;
+        }
+
+        Log.i(TAG, "resolveDiscToLocalFile: copiando disco a " + outFile.getAbsolutePath());
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             OutputStream out = new FileOutputStream(outFile)) {
+            if (in == null) {
+                return null;
+            }
+            byte[] buffer = new byte[1024 * 1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+        }
+        Log.i(TAG, "resolveDiscToLocalFile: copia terminada (" + outFile.length() + " bytes)");
+        return outFile;
+    }
+
+    private String queryDisplayName(Uri uri) {
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) {
+                    return cursor.getString(idx);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "queryDisplayName fallo", e);
+        }
+        return null;
+    }
+
+    private long querySize(Uri uri) {
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idx = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (idx >= 0 && !cursor.isNull(idx)) {
+                    return cursor.getLong(idx);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "querySize fallo", e);
+        }
+        return -1;
     }
 }

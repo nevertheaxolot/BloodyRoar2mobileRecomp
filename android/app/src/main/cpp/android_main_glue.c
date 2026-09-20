@@ -1,28 +1,29 @@
 #include <SDL.h>
+#include <android/log.h>
 
 /*
  * Puente real hacia el motor de psxrecomp.
  *
  * SDLActivity llama a SDL_main(argc, argv), donde argv es exactamente lo
- * que devuelve MainActivity.getArguments() en Java (por ejemplo
- * {"--disc", "/data/.../disco.bin", "--no-launcher"}).
+ * que devuelve MainActivity.getArguments() en Java. Reenviamos argc/argv
+ * directo a main() de psxrecomp/runtime/src/main.cpp.
  *
- * psxrecomp/runtime/src/main.cpp ya tiene una funcion "main(argc, argv)"
- * completa para escritorio. Simplemente reenviamos argc/argv. Envolvemos
- * la llamada con SDL_Log (que SI llega a logcat, a diferencia de los
- * fprintf(stderr,...) que usa main.cpp) para poder ver el argc/argv real
- * y el codigo de retorno cuando algo falla.
+ * Usamos __android_log_print con la etiqueta "BR2Recomp" (la misma que
+ * ya usa MainActivity.java) en vez de SDL_Log, para tener certeza de que
+ * el mensaje aparece en logcat igual que los mensajes de Java.
  */
+#define TAG "BR2Recomp"
+
 extern int main(int argc, char **argv);
 
 int SDL_main(int argc, char *argv[]) {
-    SDL_Log("android_main_glue: llamando a main() con argc=%d", argc);
+    __android_log_print(ANDROID_LOG_INFO, TAG, "android_main_glue: llamando a main() con argc=%d", argc);
     for (int i = 0; i < argc; i++) {
-        SDL_Log("android_main_glue: argv[%d] = %s", i, argv[i]);
+        __android_log_print(ANDROID_LOG_INFO, TAG, "android_main_glue: argv[%d] = %s", i, argv[i]);
     }
 
     int rc = main(argc, argv);
 
-    SDL_Log("android_main_glue: main() retorno %d", rc);
+    __android_log_print(ANDROID_LOG_INFO, TAG, "android_main_glue: main() retorno %d", rc);
     return rc;
 }

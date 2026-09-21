@@ -57,7 +57,10 @@ public class MainActivity extends SDLActivity {
                 return new String[]{};
             }
             Log.i(TAG, "getArguments: --disc " + localDisc.getAbsolutePath());
-            return new String[]{"--disc", localDisc.getAbsolutePath(), "--no-launcher"};
+            // argv[0] es siempre el "nombre del programa" por convencion de C;
+                // main.cpp arranca su parseo real en argv[1] (for i=1...), asi
+                // que sin este placeholder el --disc real se saltaba.
+                return new String[]{"psxrecomp", "--disc", localDisc.getAbsolutePath(), "--no-launcher"};
         } catch (Exception e) {
             Log.e(TAG, "getArguments: excepcion resolviendo el disco", e);
             return new String[]{};

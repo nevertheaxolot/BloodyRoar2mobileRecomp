@@ -125,6 +125,45 @@ jobs:
               print("Ya estaba parchado o el texto cambio, revisar a mano")
           PYEOF
 
+      - name: Parchear main.cpp (logs de diagnostico Android en main())
+        run: |
+          python3 - <<'PYEOF'
+          path = "psxrecomp/runtime/src/main.cpp"
+          with open(path) as f:
+              content = f.read()
+
+          old1 = '''    std::fprintf(stderr, "psxrecomp: main() entered\\n");
+              std::fflush(stderr);'''
+          new1 = old1 + '''
+          #if defined(__ANDROID__)
+              __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: main() entered (punto 1)");
+          #endif'''
+
+          old2 = '''#if defined(PSX_HAS_CODEGEN_SETUP_HOST)
+              psx_game_codegen_forward_if_built(argc, argv);
+          #endif'''
+          new2 = old2 + '''
+          #if defined(__ANDROID__)
+              __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: paso el bloque PSX_HAS_CODEGEN_SETUP_HOST (punto 2)");
+          #endif'''
+
+          old3 = '#include "psx_sdl.h"'
+          new3 = '''#include "psx_sdl.h"
+          #if defined(__ANDROID__)
+          #include <android/log.h>
+          #endif'''
+
+          if old1 in content and old2 in content and old3 in content:
+              content = content.replace(old1, new1, 1)
+              content = content.replace(old2, new2, 1)
+              content = content.replace(old3, new3, 1)
+              with open(path, "w") as f:
+                  f.write(content)
+              print("main.cpp parchado OK")
+          else:
+              print("Ya estaba parchado o el texto cambio, revisar a mano")
+          PYEOF
+
       - name: Configurar JDK 17 (requerido por Gradle/Android)
         uses: actions/setup-java@v4
         with:

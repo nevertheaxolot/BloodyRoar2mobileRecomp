@@ -132,21 +132,12 @@ jobs:
           with open(path) as f:
               lines = f.readlines()
 
-          if_idx = None
-          for i, line in enumerate(lines):
-              if "if (g_headless) {" in line and "std::fprintf" not in line:
-                  if_idx = i
-                  break
+          if_idx = 14833
+          else_idx = 14835
 
-          if if_idx is None:
-              print("Ya estaba parchado o el texto cambio, revisar a mano")
+          if "if (g_headless) {" not in lines[if_idx] or "} else {" not in lines[else_idx]:
+              print("Los numeros de linea ya no coinciden - revisar a mano")
           else:
-              else_idx = None
-              for i in range(if_idx, min(if_idx + 6, len(lines))):
-                  if "} else {" in lines[i]:
-                      else_idx = i
-                      break
-
               punto4 = [
                   "#if defined(__ANDROID__)\n",
                   '            __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: entrando al bloque SDL init real (punto 4)");\n',

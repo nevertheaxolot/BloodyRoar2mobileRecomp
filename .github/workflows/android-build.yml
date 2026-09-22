@@ -132,57 +132,78 @@ jobs:
           with open(path) as f:
               lines = f.readlines()
 
-          if_idx = 14833
-          else_idx = 14835
+          fprintf_idx = None
+          for i, line in enumerate(lines):
+              if "headless frontend enabled" in line:
+                  fprintf_idx = i
+                  break
 
-          if "if (g_headless) {" not in lines[if_idx] or "} else {" not in lines[else_idx]:
-              print("Los numeros de linea ya no coinciden - revisar a mano")
+          if fprintf_idx is None:
+              print("No encontre 'headless frontend enabled' - revisar a mano")
           else:
-              punto4 = [
-                  "#if defined(__ANDROID__)\n",
-                  '            __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: entrando al bloque SDL init real (punto 4)");\n',
-                  "#endif\n",
-              ]
-              lines[else_idx+1:else_idx+1] = punto4
+              else_idx = None
+              for i in range(fprintf_idx, min(fprintf_idx + 15, len(lines))):
+                  if "} else {" in lines[i]:
+                      else_idx = i
+                      break
 
-              punto3 = [
-                  "#if defined(__ANDROID__)\n",
-                  '        __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: llegue al branch g_headless (punto 3), g_headless=%d", g_headless);\n',
-                  "#endif\n",
-              ]
-              lines[if_idx:if_idx] = punto3
+              if else_idx is None:
+                  print("No encontre '} else {' cerca - revisar a mano")
+              else:
+                  punto4 = [
+                      "#if defined(__ANDROID__)\n",
+                      '            __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: entrando al bloque SDL init real (punto 4)");\n',
+                      "#endif\n",
+                  ]
+                  lines[else_idx+1:else_idx+1] = punto4
 
-              old1 = '''    std::fprintf(stderr, "psxrecomp: main() entered\\n");
+                  if_idx = None
+                  for i in range(max(0, fprintf_idx - 3), fprintf_idx):
+                      if "if (g_headless) {" in lines[i]:
+                          if_idx = i
+                          break
+
+                  if if_idx is None:
+                      print("No encontre 'if (g_headless) {' cerca - revisar a mano")
+                  else:
+                      punto3 = [
+                          "#if defined(__ANDROID__)\n",
+                          '        __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: llegue al branch g_headless (punto 3), g_headless=%d", g_headless);\n',
+                          "#endif\n",
+                      ]
+                      lines[if_idx:if_idx] = punto3
+
+                      old1 = '''    std::fprintf(stderr, "psxrecomp: main() entered\\n");
               std::fflush(stderr);'''
-              new1 = old1 + '''
+                      new1 = old1 + '''
           #if defined(__ANDROID__)
               __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: main() entered (punto 1)");
           #endif'''
 
-              old2 = '''#if defined(PSX_HAS_CODEGEN_SETUP_HOST)
+                      old2 = '''#if defined(PSX_HAS_CODEGEN_SETUP_HOST)
               psx_game_codegen_forward_if_built(argc, argv);
           #endif'''
-              new2 = old2 + '''
+                      new2 = old2 + '''
           #if defined(__ANDROID__)
               __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: paso el bloque PSX_HAS_CODEGEN_SETUP_HOST (punto 2)");
           #endif'''
 
-              old3 = '#include "psx_sdl.h"'
-              new3 = '''#include "psx_sdl.h"
+                      old3 = '#include "psx_sdl.h"'
+                      new3 = '''#include "psx_sdl.h"
           #if defined(__ANDROID__)
           #include <android/log.h>
           #endif'''
 
-              content2 = "".join(lines)
-              if old1 in content2 and old2 in content2 and old3 in content2:
-                  content2 = content2.replace(old1, new1, 1)
-                  content2 = content2.replace(old2, new2, 1)
-                  content2 = content2.replace(old3, new3, 1)
-                  with open(path, "w") as f:
-                      f.write(content2)
-                  print("main.cpp parchado OK (4 puntos de diagnostico)")
-              else:
-                  print("No encontre los puntos 1/2/include - revisar a mano")
+                      content2 = "".join(lines)
+                      if old1 in content2 and old2 in content2 and old3 in content2:
+                          content2 = content2.replace(old1, new1, 1)
+                          content2 = content2.replace(old2, new2, 1)
+                          content2 = content2.replace(old3, new3, 1)
+                          with open(path, "w") as f:
+                              f.write(content2)
+                          print("main.cpp parchado OK (4 puntos de diagnostico)")
+                      else:
+                          print("No encontre los puntos 1/2/include - revisar a mano")
           PYEOF
 
       - name: Configurar JDK 17 (requerido por Gradle/Android)

@@ -137,6 +137,10 @@ if(ANDROID)
     )
         target_link_libraries(psx-android PRIVATE xpack-3rd-party::libucontext)
     target_link_libraries(psx-android PRIVATE log)  # necesario para __android_log_print (usado en main.cpp)
+target_include_directories(psx-android PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/recomp-ui/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/recomp-ui/src/common
+)  # headers de recomp_launcher.h / launcher_system_types.h que RECOMP_LAUNCHER necesita, sin arrastrar imgui/backends
 target_compile_definitions(psx-android PRIVATE RECOMP_LAUNCHER)  # un-gate BIOS/disc/memory_init en main() para Android headless
     target_include_directories(psx-android PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/android_ucontext_shim")
 endif()

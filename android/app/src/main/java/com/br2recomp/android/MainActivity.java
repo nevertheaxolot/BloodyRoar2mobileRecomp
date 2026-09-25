@@ -32,6 +32,11 @@ public class MainActivity extends SDLActivity {
     @Override
     protected void onCreate(android.os.Bundle savedInstanceState) {
         gameUriString = getIntent().getStringExtra("GAME_URI");
+        try {
+            android.system.Os.setenv("PSX_EXE_DIR_OVERRIDE", getFilesDir().getAbsolutePath(), true);
+        } catch (Exception e) {
+            Log.e(TAG, "onCreate: no se pudo setear PSX_EXE_DIR_OVERRIDE", e);
+        }
         super.onCreate(savedInstanceState);
     }
 

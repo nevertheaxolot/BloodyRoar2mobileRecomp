@@ -56,7 +56,7 @@ public class MainActivity extends SDLActivity {
                 Log.e(TAG, "getArguments: no se pudo resolver el disco a un archivo local");
                 return new String[]{};
             }
-            String[] args = new String[]{"psxrecomp", "--disc", localDisc.getAbsolutePath(), "--no-launcher"};
+            String[] args = new String[]{getFilesDir().getAbsolutePath() + "/psxrecomp", "--disc", localDisc.getAbsolutePath(), "--no-launcher"};
             Log.i(TAG, "getArguments: array completo = " + java.util.Arrays.toString(args));
             // argv[0] es siempre el "nombre del programa" por convencion de C;
                 // main.cpp arranca su parseo real en argv[1] (for i=1...), asi

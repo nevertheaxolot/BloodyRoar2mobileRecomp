@@ -17,11 +17,28 @@
         android:gravity="center"
         android:layout_marginBottom="24dp" />
 
+    <TextView
+        android:id="@+id/text_bios_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No se ha seleccionado ningún BIOS."
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
     <Button
         android:id="@+id/button_pick_iso"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Seleccionar ISO/BIN del juego" />
+
+    <Button
+        android:id="@+id/button_pick_bios"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Seleccionar BIOS (SCPH1001.BIN)" />
 
     <Button
         android:id="@+id/button_launch"

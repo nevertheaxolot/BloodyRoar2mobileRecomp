@@ -1,0 +1,33 @@
+name: Bump psxrecomp submodule pointer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update submodule to latest marcadores-binarios
+        run: |
+          cd psxrecomp
+          git fetch origin marcadores-binarios
+          git checkout FETCH_HEAD
+          cd ..
+          git add psxrecomp
+          if git diff --cached --quiet; then
+            echo "El submodulo ya estaba actualizado, nada que hacer."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: bump psxrecomp submodule pointer (automatico)"
+            git push
+          fi

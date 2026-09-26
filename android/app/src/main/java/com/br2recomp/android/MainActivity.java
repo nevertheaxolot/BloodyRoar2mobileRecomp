@@ -28,14 +28,34 @@ public class MainActivity extends SDLActivity {
     private static final String TAG = "BR2Recomp";
 
     private String gameUriString;
+    private String biosUriString;
 
     @Override
     protected void onCreate(android.os.Bundle savedInstanceState) {
         gameUriString = getIntent().getStringExtra("GAME_URI");
+        biosUriString = getIntent().getStringExtra("BIOS_URI");
         try {
             android.system.Os.setenv("PSX_EXE_DIR_OVERRIDE", getFilesDir().getAbsolutePath(), true);
         } catch (Exception e) {
             Log.e(TAG, "onCreate: no se pudo setear PSX_EXE_DIR_OVERRIDE", e);
+        }
+        // Si viene un BIOS_URI en este arranque, lo copiamos a la carpeta
+        // esperada por el runtime (bios/SCPH1001.BIN dentro de nuestro
+        // almacenamiento privado). Una vez copiado, queda cacheado y no
+        // hace falta volver a pasar BIOS_URI en corridas futuras.
+        if (biosUriString != null) {
+            try {
+                Uri biosUri = Uri.parse(biosUriString);
+                File biosDir = new File(getFilesDir(), "bios");
+                if (!biosDir.exists()) {
+                    biosDir.mkdirs();
+                }
+                File biosOut = new File(biosDir, "SCPH1001.BIN");
+                copyUriToFile(biosUri, biosOut);
+                Log.i(TAG, "onCreate: BIOS copiado a " + biosOut.getAbsolutePath() + " (" + biosOut.length() + " bytes)");
+            } catch (Exception e) {
+                Log.e(TAG, "onCreate: excepcion copiando el BIOS", e);
+            }
         }
         super.onCreate(savedInstanceState);
     }
@@ -94,11 +114,20 @@ public class MainActivity extends SDLActivity {
             return outFile;
         }
 
-        Log.i(TAG, "resolveDiscToLocalFile: copiando disco a " + outFile.getAbsolutePath());
+        copyUriToFile(uri, outFile);
+        return outFile;
+    }
+
+    /**
+     * Copia genérica de una content:// URI a un File local, usada tanto
+     * para el disco como para el BIOS.
+     */
+    private void copyUriToFile(Uri uri, File outFile) throws Exception {
+        Log.i(TAG, "copyUriToFile: copiando a " + outFile.getAbsolutePath());
         try (InputStream in = getContentResolver().openInputStream(uri);
              OutputStream out = new FileOutputStream(outFile)) {
             if (in == null) {
-                return null;
+                throw new Exception("openInputStream devolvio null para " + uri);
             }
             byte[] buffer = new byte[1024 * 1024];
             int read;
@@ -106,8 +135,7 @@ public class MainActivity extends SDLActivity {
                 out.write(buffer, 0, read);
             }
         }
-        Log.i(TAG, "resolveDiscToLocalFile: copia terminada (" + outFile.length() + " bytes)");
-        return outFile;
+        Log.i(TAG, "copyUriToFile: copia terminada (" + outFile.length() + " bytes)");
     }
 
     private String queryDisplayName(Uri uri) {

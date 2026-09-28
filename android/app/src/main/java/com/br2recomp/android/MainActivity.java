@@ -36,7 +36,7 @@ public class MainActivity extends SDLActivity {
                 if (!biosDir.exists()) {
                     biosDir.mkdirs();
                 }
-                File biosOut = new File(biosDir, "SCPH1001.BIN");
+                File biosOut = new File(biosDir, "openbios.bin");
                 copyUriToFile(biosUri, biosOut);
                 Log.i(TAG, "onCreate: BIOS copiado a " + biosOut.getAbsolutePath() + " (" + biosOut.length() + " bytes)");
             } catch (Exception e) {
@@ -73,12 +73,7 @@ public class MainActivity extends SDLActivity {
             argList.add("--disc");
             argList.add(localDisc.getAbsolutePath());
 
-            // El BIOS solo se usa si se pasa explícitamente por --bios; el
-            // valor por defecto compilado (bios/SCPH1001.BIN) se ignora si
-            // no viene marcado como explícito. Lo pasamos siempre que el
-            // archivo ya exista en almacenamiento privado (copiado una vez
-            // desde BIOS_URI, o en corridas anteriores).
-            File biosFile = new File(new File(getFilesDir(), "bios"), "SCPH1001.BIN");
+            File biosFile = new File(new File(getFilesDir(), "bios"), "openbios.bin");
             if (biosFile.exists()) {
                 argList.add("--bios");
                 argList.add(biosFile.getAbsolutePath());

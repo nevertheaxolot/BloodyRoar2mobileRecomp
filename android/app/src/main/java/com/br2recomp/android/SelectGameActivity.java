@@ -11,20 +11,6 @@ import android.widget.Toast;
 
 import java.io.File;
 
-/**
- * Pantalla inicial (LAUNCHER). Antes de arrancar el runtime nativo
- * (MainActivity/SDLActivity), el usuario debe elegir el archivo del disco
- * del juego (.bin/.cue/.iso/.chd) y, la primera vez, el BIOS de PlayStation
- * (SCPH1001.BIN, 512 KB) desde el propio almacenamiento del celular, usando
- * el selector de archivos del sistema (Storage Access Framework) — así no
- * necesitamos permisos amplios de almacenamiento.
- *
- * Las rutas elegidas se guardan en SharedPreferences como "content:// URI"
- * con permiso persistente, para no tener que volver a pedirlas cada vez.
- * El BIOS además se copia a almacenamiento privado (files/bios/SCPH1001.BIN)
- * en MainActivity, así que una vez copiado no hace falta volver a
- * seleccionarlo en corridas futuras.
- */
 public class SelectGameActivity extends Activity {
 
     private static final String PREFS_NAME = "br2recomp_prefs";
@@ -32,7 +18,6 @@ public class SelectGameActivity extends Activity {
     private static final String KEY_BIOS_URI = "bios_uri";
     private static final int REQUEST_CODE_PICK_ISO = 1001;
     private static final int REQUEST_CODE_PICK_BIOS = 1002;
-    private static final long EXPECTED_BIOS_SIZE = 524288L; // 512 KB
 
     private TextView statusText;
     private TextView biosStatusText;
@@ -70,10 +55,8 @@ public class SelectGameActivity extends Activity {
     }
 
     private void restoreSavedBios() {
-        // Si el BIOS ya fue copiado a almacenamiento privado en una corrida
-        // anterior, no hace falta volver a seleccionarlo.
-        File biosFile = new File(new File(getFilesDir(), "bios"), "SCPH1001.BIN");
-        if (biosFile.exists() && biosFile.length() == EXPECTED_BIOS_SIZE) {
+        File biosFile = new File(new File(getFilesDir(), "bios"), "openbios.bin");
+        if (biosFile.exists() && biosFile.length() > 0) {
             biosStatusText.setText("BIOS ya instalado (" + biosFile.length() + " bytes).");
             return;
         }
@@ -86,8 +69,8 @@ public class SelectGameActivity extends Activity {
     }
 
     private boolean isBiosAlreadyInstalled() {
-        File biosFile = new File(new File(getFilesDir(), "bios"), "SCPH1001.BIN");
-        return biosFile.exists() && biosFile.length() == EXPECTED_BIOS_SIZE;
+        File biosFile = new File(new File(getFilesDir(), "bios"), "openbios.bin");
+        return biosFile.exists() && biosFile.length() > 0;
     }
 
     private void updateLaunchButtonState() {
@@ -98,9 +81,6 @@ public class SelectGameActivity extends Activity {
     private void openFilePicker() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        // "*/*" porque .bin/.cue/.chd no siempre tienen un MIME type
-        // reconocido por Android; filtramos por extensión al recibir el
-        // resultado en su lugar.
         intent.setType("*/*");
         startActivityForResult(intent, REQUEST_CODE_PICK_ISO);
     }
@@ -122,8 +102,6 @@ public class SelectGameActivity extends Activity {
         if (uri == null) {
             return;
         }
-        // Permiso persistente para poder leer este archivo en próximos
-        // arranques de la app sin volver a pedirlo.
         getContentResolver().takePersistableUriPermission(
                 uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
 

@@ -12,3 +12,21 @@ else:
            '#endif\n')
     open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(hdr + s)
     print('GLSL reemplazos:', n)
+
+# --- diagnostico GL ---
+import re
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'GL funcion faltante' in s:
+    print('DIAG: ya parcheado')
+else:
+    s, a = re.subn(r'if\s*\(\s*!p\s*\)\s*ok\s*=\s*0\s*;',
+        lambda m: 'if (!p) { ok = 0; fprintf(stdout, "psxrecomp: GL funcion faltante: %s\\n", n); }', s, count=1)
+    i = s.find('static int init_gpu_raster(void) {')
+    j = s.find('\n}\n', i) if i >= 0 else -1
+    b = 0
+    if i >= 0 and j > i:
+        body, b = re.subn(r'\breturn 0;',
+            lambda m: '{ fprintf(stdout, "psxrecomp: init_gpu_raster fallo (linea %d)\\n", __LINE__); return 0; }', s[i:j])
+        s = s[:i] + body + s[j:]
+    open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+    print('DIAG: LOAD=%d returns=%d' % (a, b))

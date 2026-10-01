@@ -65,3 +65,14 @@ if 'FBFETCH ext=' not in s:
     print('FBDIAG anclas:', s.count(anchor))
     s = s.replace(anchor, diag + anchor, 1)
     open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+
+# --- sin dual-source: quitar 2a salida y bind ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+a = s.count('out vec4 blend_factor;')
+s = s.replace('out vec4 blend_factor;', '')
+b = len(re.findall(r'blend_factor\s*=\s*vec4\(', s))
+s = re.sub(r'blend_factor\s*=\s*vec4\(', 'vec4 bf_unused = vec4(', s)
+c = s.count('if (dual_source) {')
+s = s.replace('if (dual_source) {', 'if (0 && dual_source) {')
+open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+print('DUAL: out=%d asign=%d bind=%d' % (a, b, c))

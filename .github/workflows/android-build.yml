@@ -224,6 +224,9 @@ jobs:
 
           PYEOF
 
+      - name: Parchear main.cpp (OpenGL ES en vez de GL Core en Android)
+        run: python3 scripts/patch_android_gles.py
+
       - name: Configurar JDK 17 (requerido por Gradle/Android)
         uses: actions/setup-java@v4
         with:

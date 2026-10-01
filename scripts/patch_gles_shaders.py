@@ -40,3 +40,17 @@ new = ('p_glBindFragDataLocationIndexed = (void *)SDL_GL_GetProcAddress("glBindF
 print('IDX:', s.count(old))
 s = s.replace(old, new)
 open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+
+# --- noperspective no existe en ES + diag de extension ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+n = len(re.findall(r'\bnoperspective\s+', s))
+s = re.sub(r'\bnoperspective\s+', '', s)
+if 'EXT_blend_func_extended=' not in s:
+    anchor = 'int ok = load_modern_gl();'
+    diag = ('{ const char *ex = (const char *)glGetString(0x1F03); '
+            'fprintf(stdout, "psxrecomp: EXT_blend_func_extended=%d\\n", (ex && strstr(ex, "GL_EXT_blend_func_extended")) ? 1 : 0); } ')
+    print('EXTDIAG anclas:', s.count(anchor))
+    s = s.replace(anchor, diag + anchor, 1)
+    s = '#include <string.h>\n' + s
+open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+print('NOPERSP quitados:', n)

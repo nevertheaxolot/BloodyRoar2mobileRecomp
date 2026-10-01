@@ -54,3 +54,14 @@ if 'EXT_blend_func_extended=' not in s:
     s = '#include <string.h>\n' + s
 open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
 print('NOPERSP quitados:', n)
+
+# --- diag: GPU y framebuffer fetch ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'FBFETCH ext=' not in s:
+    anchor = 'int ok = load_modern_gl();'
+    diag = ('{ const char *ex = (const char *)glGetString(0x1F03); const char *rn = (const char *)glGetString(0x1F01); '
+            'fprintf(stdout, "psxrecomp: GL_RENDERER=%s\\n", rn ? rn : "?"); '
+            'fprintf(stdout, "psxrecomp: FBFETCH ext=%d arm=%d\\n", (ex && strstr(ex, "GL_EXT_shader_framebuffer_fetch")) ? 1 : 0, (ex && strstr(ex, "GL_ARM_shader_framebuffer_fetch")) ? 1 : 0); } ')
+    print('FBDIAG anclas:', s.count(anchor))
+    s = s.replace(anchor, diag + anchor, 1)
+    open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)

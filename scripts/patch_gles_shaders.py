@@ -6,7 +6,7 @@ else:
     n = s.count('"#version 330\\n"')
     s = s.replace('"#version 330\\n"', 'BR2_GLSL_VER')
     hdr = ('#ifdef __ANDROID__\n'
-           '#define BR2_GLSL_VER "#version 300 es\\n" "precision highp float;\\n" "precision highp int;\\n" "precision highp sampler2D;\\n" "precision highp usampler2D;\\n" "precision highp isampler2D;\\n"\n'
+           '#define BR2_GLSL_VER "#version 300 es\\n" "#extension GL_EXT_blend_func_extended : enable\\n" "precision highp float;\\n" "precision highp int;\\n" "precision highp sampler2D;\\n" "precision highp usampler2D;\\n" "precision highp isampler2D;\\n"\n'
            '#else\n'
            '#define BR2_GLSL_VER "#version 330\\n"\n'
            '#endif\n')
@@ -30,3 +30,13 @@ else:
         s = s[:i] + body + s[j:]
     open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
     print('DIAG: LOAD=%d returns=%d' % (a, b))
+
+# --- dual-source via EXT en ES ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+old = 'LOAD(p_glBindFragDataLocationIndexed, "glBindFragDataLocationIndexed");'
+new = ('p_glBindFragDataLocationIndexed = (void *)SDL_GL_GetProcAddress("glBindFragDataLocationIndexed"); '
+       'if (!p_glBindFragDataLocationIndexed) p_glBindFragDataLocationIndexed = (void *)SDL_GL_GetProcAddress("glBindFragDataLocationIndexedEXT"); '
+       'if (!p_glBindFragDataLocationIndexed) { ok = 0; fprintf(stdout, "psxrecomp: GL funcion faltante: glBindFragDataLocationIndexed(EXT)\\n"); }')
+print('IDX:', s.count(old))
+s = s.replace(old, new)
+open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)

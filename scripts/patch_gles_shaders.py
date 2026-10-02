@@ -76,3 +76,15 @@ c = s.count('if (dual_source) {')
 s = s.replace('if (dual_source) {', 'if (0 && dual_source) {')
 open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
 print('DUAL: out=%d asign=%d bind=%d' % (a, b, c))
+
+# --- diag: trazas del runtime activadas desde main() ---
+pm = 'psxrecomp/runtime/src/main.cpp'
+m = open(pm, encoding='utf-8', errors='surrogateescape', newline='').read()
+anchor = 'br2_redirect_stdio();'
+if 'BR2_TRACE_ENV' in m:
+    print('TRACE: ya parcheado')
+else:
+    add = ' /*BR2_TRACE_ENV*/ setenv("PSX_CD_DMA_TRACE", "1", 1); setenv("PSX_FPS_TELEMETRY", "1", 1);'
+    print('TRACE anclas:', m.count(anchor))
+    m = m.replace(anchor, anchor + add, 1)
+    open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)

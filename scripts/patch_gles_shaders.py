@@ -100,3 +100,28 @@ else:
     m, k = re.subn(pat, lambda x: x.group(0) + add, m, count=1)
     print('LW anclas:', k)
     open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)
+
+# --- diag: mando (GUID, mapeo y eventos de botones) ---
+pm = 'psxrecomp/runtime/src/main.cpp'
+m = open(pm, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'BR2PAD' in m:
+    print('PAD: ya parcheado')
+else:
+    pat = r'(std::fprintf\(stdout, "psxrecomp runtime: opened controller for slot: %s\\n",\s*name \? name : "\(unnamed\)"\);)'
+    add = r'''
+ { char* br2mp = SDL_GameControllerMapping(p.handle);
+   std::fprintf(stdout, "BR2PAD opened guid=%s mapping=%s\n", p.guid, br2mp ? br2mp : "(none)");
+   if (br2mp) SDL_free(br2mp);
+   static bool br2w = false;
+   if (!br2w) { br2w = true;
+     SDL_AddEventWatch([](void*, SDL_Event* e) -> int {
+       if (e->type == SDL_CONTROLLERBUTTONDOWN || e->type == SDL_CONTROLLERBUTTONUP)
+         std::fprintf(stdout, "BR2PAD cbutton %s %s\n", SDL_GameControllerGetStringForButton((SDL_GameControllerButton)e->cbutton.button), e->type == SDL_CONTROLLERBUTTONDOWN ? "down" : "up");
+       else if (e->type == SDL_JOYBUTTONDOWN || e->type == SDL_JOYBUTTONUP)
+         std::fprintf(stdout, "BR2PAD joybutton %d %s\n", (int)e->jbutton.button, e->type == SDL_JOYBUTTONDOWN ? "down" : "up");
+       else if (e->type == SDL_JOYHATMOTION)
+         std::fprintf(stdout, "BR2PAD hat %d value %d\n", (int)e->jhat.hat, (int)e->jhat.value);
+       return 0; }, nullptr); } }'''
+    m, k = re.subn(pat, lambda x: x.group(1) + add, m)
+    print('PAD anclas:', k)
+    open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)

@@ -88,3 +88,15 @@ else:
     print('TRACE anclas:', m.count(anchor))
     m = m.replace(anchor, anchor + add, 1)
     open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)
+
+# --- launcher_warning tambien al log ---
+pm = 'psxrecomp/runtime/src/main.cpp'
+m = open(pm, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'LAUNCHER_WARNING [' in m:
+    print('LW: ya parcheado')
+else:
+    pat = r'static void launcher_warning\(const char\* title, const std::string& msg\)\s*\{'
+    add = ' fprintf(stdout, "psxrecomp: LAUNCHER_WARNING [%s] %s\\n", title ? title : "", msg.c_str());'
+    m, k = re.subn(pat, lambda x: x.group(0) + add, m, count=1)
+    print('LW anclas:', k)
+    open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)

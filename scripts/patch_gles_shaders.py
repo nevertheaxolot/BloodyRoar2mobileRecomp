@@ -125,3 +125,31 @@ else:
     m, k = re.subn(pat, lambda x: x.group(1) + add, m)
     print('PAD anclas:', k)
     open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)
+
+# --- diag: eventos de entrada (teclas, joystick, mando) ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'br2_evwatch' in s:
+    print('IN: ya parcheado')
+else:
+    fn = r'''static int br2_evwatch(void *ud, SDL_Event *e) {
+    (void)ud;
+    if ((e->type == SDL_KEYDOWN && !e->key.repeat) || e->type == SDL_KEYUP)
+        fprintf(stdout, "BR2IN key %s %s\n", SDL_GetKeyName(e->key.keysym.sym), e->type == SDL_KEYDOWN ? "down" : "up");
+    else if (e->type == SDL_JOYBUTTONDOWN || e->type == SDL_JOYBUTTONUP)
+        fprintf(stdout, "BR2IN joybutton %d %s\n", (int)e->jbutton.button, e->type == SDL_JOYBUTTONDOWN ? "down" : "up");
+    else if (e->type == SDL_CONTROLLERBUTTONDOWN || e->type == SDL_CONTROLLERBUTTONUP)
+        fprintf(stdout, "BR2IN cbutton %s %s\n", SDL_GameControllerGetStringForButton((SDL_GameControllerButton)e->cbutton.button), e->type == SDL_CONTROLLERBUTTONDOWN ? "down" : "up");
+    else if (e->type == SDL_JOYHATMOTION)
+        fprintf(stdout, "BR2IN hat %d value %d\n", (int)e->jhat.hat, (int)e->jhat.value);
+    else if (e->type == SDL_JOYDEVICEADDED || e->type == SDL_CONTROLLERDEVICEADDED)
+        fprintf(stdout, "BR2IN device added index=%d\n", (int)e->jdevice.which);
+    return 0;
+}
+'''
+    a1 = 'static int load_modern_gl(void) {'
+    a2 = 'int ok = load_modern_gl();'
+    add2 = r'''SDL_AddEventWatch(br2_evwatch, NULL); fprintf(stdout, "BR2IN joysticks=%d\n", SDL_NumJoysticks()); '''
+    print('IN anclas: a1=%d a2=%d' % (s.count(a1), s.count(a2)))
+    s = s.replace(a1, fn + a1, 1)
+    s = s.replace(a2, add2 + a2, 1)
+    open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)

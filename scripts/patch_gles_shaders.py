@@ -184,7 +184,7 @@ if 'BR2IN joy[' in s:
 else:
     new = ('{ int br2n = SDL_NumJoysticks(); fprintf(stdout, "BR2IN joysticks=%d\\n", br2n); '
            'for (int i = 0; i < br2n; i++) { char gs[64]; SDL_JoystickGUID g = SDL_JoystickGetDeviceGUID(i); SDL_JoystickGetGUIDString(g, gs, (int)sizeof gs); '
-           'SDL_Joystick *j = SDL_JoystickOpen(i); const char *jn = SDL_JoystickNameForIndex(i); '
+           'SDL_Joystick *j = NULL; const char *jn = SDL_JoystickNameForIndex(i); '
            'fprintf(stdout, "BR2IN joy[%d] name=%s guid=%s isGC=%d buttons=%d axes=%d hats=%d\\n", i, jn ? jn : "?", gs, (int)SDL_IsGameController(i), j ? SDL_JoystickNumButtons(j) : -1, j ? SDL_JoystickNumAxes(j) : -1, j ? SDL_JoystickNumHats(j) : -1); '
            'char *mp = SDL_GameControllerMappingForGUID(g); fprintf(stdout, "BR2IN joy[%d] mapping=%s\\n", i, mp ? mp : "(none)"); if (mp) SDL_free(mp); } } ')
     print('JOY anclas:', s.count(old))
@@ -194,3 +194,14 @@ else:
     print('AXIS anclas:', s.count(ax))
     s = s.replace(ax, axnew, 1)
     open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+
+# --- jugador 1 = mando por defecto en Android ---
+pm = 'psxrecomp/runtime/src/main.cpp'
+m = open(pm, encoding='utf-8', errors='surrogateescape', newline='').read()
+old = '(i == 0) ? "keyboard" : "none"'
+if 'BR2_P1_PAD' in m:
+    print('P1: ya parcheado')
+else:
+    print('P1 anclas:', m.count(old))
+    m = m.replace(old, '(i == 0) ? "gamepad" /*BR2_P1_PAD*/ : "none"')
+    open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)

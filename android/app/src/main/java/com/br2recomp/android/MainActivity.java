@@ -44,6 +44,7 @@ public class MainActivity extends SDLActivity {
             }
         }
         super.onCreate(savedInstanceState);
+        br2LogInputDevices("onCreate");
     }
 
     @Override
@@ -157,5 +158,53 @@ public class MainActivity extends SDLActivity {
     protected void onDestroy() {
         super.onDestroy();
         android.os.Process.killProcess(android.os.Process.myPid());
+    }
+
+    private long br2LastMotion = 0;
+
+    private void br2LogInputDevices(String where) {
+        try {
+            int[] ids = android.view.InputDevice.getDeviceIds();
+            Log.i("BR2Input", where + ": " + ids.length + " dispositivos de entrada");
+            for (int id : ids) {
+                android.view.InputDevice d = android.view.InputDevice.getDevice(id);
+                if (d == null) continue;
+                Log.i("BR2Input", "dev id=" + id + " name=" + d.getName() + " vid=" + d.getVendorId() + " pid=" + d.getProductId() + " sources=0x" + Integer.toHexString(d.getSources()) + " virtual=" + d.isVirtual());
+            }
+        } catch (Throwable t) { Log.e("BR2Input", "diag fallo", t); }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        if (e.getRepeatCount() == 0) {
+            Log.i("BR2Input", "key " + android.view.KeyEvent.keyCodeToString(e.getKeyCode()) + " act=" + e.getAction() + " dev=" + e.getDeviceId() + " src=0x" + Integer.toHexString(e.getSource()));
+        }
+        return super.dispatchKeyEvent(e);
+    }
+
+    @Override
+    public boolean dispatchGenericMotionEvent(android.view.MotionEvent ev) {
+        if ((ev.getSource() & android.view.InputDevice.SOURCE_JOYSTICK) == android.view.InputDevice.SOURCE_JOYSTICK) {
+            long now = android.os.SystemClock.uptimeMillis();
+            if (now - br2LastMotion > 250) {
+                float hx = ev.getAxisValue(android.view.MotionEvent.AXIS_HAT_X);
+                float hy = ev.getAxisValue(android.view.MotionEvent.AXIS_HAT_Y);
+                float lx = ev.getAxisValue(android.view.MotionEvent.AXIS_X);
+                float ly = ev.getAxisValue(android.view.MotionEvent.AXIS_Y);
+                float rx = ev.getAxisValue(android.view.MotionEvent.AXIS_Z);
+                float ry = ev.getAxisValue(android.view.MotionEvent.AXIS_RZ);
+                if (Math.abs(hx) > 0.5f || Math.abs(hy) > 0.5f || Math.abs(lx) > 0.5f || Math.abs(ly) > 0.5f || Math.abs(rx) > 0.5f || Math.abs(ry) > 0.5f) {
+                    br2LastMotion = now;
+                    Log.i("BR2Input", "motion dev=" + ev.getDeviceId() + " hat=" + hx + "," + hy + " L=" + lx + "," + ly + " R=" + rx + "," + ry);
+                }
+            }
+        }
+        return super.dispatchGenericMotionEvent(ev);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        br2LogInputDevices("onResume");
     }
 }

@@ -153,3 +153,25 @@ else:
     s = s.replace(a1, fn + a1, 1)
     s = s.replace(a2, add2 + a2, 1)
     open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+
+# --- diag: PSX_GL_PERF activado ---
+pm = 'psxrecomp/runtime/src/main.cpp'
+m = open(pm, encoding='utf-8', errors='surrogateescape', newline='').read()
+anc = 'setenv("PSX_FPS_TELEMETRY", "1", 1);'
+if 'BR2_GL_PERF_ENV' in m:
+    print('PERF: ya parcheado')
+else:
+    print('PERF anclas:', m.count(anc))
+    m = m.replace(anc, anc + ' /*BR2_GL_PERF_ENV*/ setenv("PSX_GL_PERF", "1", 1);', 1)
+    open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)
+
+# --- diag: PSX_GL_PERF activado ---
+pm = 'psxrecomp/runtime/src/main.cpp'
+m = open(pm, encoding='utf-8', errors='surrogateescape', newline='').read()
+anc = 'setenv("PSX_FPS_TELEMETRY", "1", 1);'
+if 'BR2_GL_PERF_ENV' in m:
+    print('PERF: ya parcheado')
+else:
+    print('PERF anclas:', m.count(anc))
+    m = m.replace(anc, anc + ' /*BR2_GL_PERF_ENV*/ setenv("PSX_GL_PERF", "1", 1);', 1)
+    open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)

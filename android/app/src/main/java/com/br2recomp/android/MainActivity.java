@@ -43,7 +43,9 @@ public class MainActivity extends SDLActivity {
                 Log.e(TAG, "onCreate: excepcion copiando el BIOS", e);
             }
         }
+        br2PrepareInput();
         super.onCreate(savedInstanceState);
+        br2AddTouchOverlay();
         br2LogInputDevices("onCreate");
     }
 
@@ -206,5 +208,52 @@ public class MainActivity extends SDLActivity {
     protected void onResume() {
         super.onResume();
         br2LogInputDevices("onResume");
+    }
+
+    private boolean br2TouchOn = true;
+    private boolean br2UseOverlay = false;
+    private int br2TouchAlpha = 40;
+
+    private boolean br2HasGamepad() {
+        try {
+            for (int id : android.view.InputDevice.getDeviceIds()) {
+                android.view.InputDevice d = android.view.InputDevice.getDevice(id);
+                if (d == null || d.isVirtual()) continue;
+                int src = d.getSources();
+                if ((src & android.view.InputDevice.SOURCE_GAMEPAD) == android.view.InputDevice.SOURCE_GAMEPAD
+                        || (src & android.view.InputDevice.SOURCE_JOYSTICK) == android.view.InputDevice.SOURCE_JOYSTICK) {
+                    return true;
+                }
+            }
+        } catch (Throwable t) {
+            Log.e("BR2Input", "deteccion de mando fallo", t);
+        }
+        return false;
+    }
+
+    private void br2PrepareInput() {
+        br2TouchOn = getIntent().getBooleanExtra("TOUCH_CONTROLS", true);
+        br2TouchAlpha = getIntent().getIntExtra("TOUCH_ALPHA", 40);
+        boolean pad = br2HasGamepad();
+        br2UseOverlay = br2TouchOn && !pad;
+        try {
+            android.system.Os.setenv("BR2_P1_DEVICE", pad ? "gamepad" : "keyboard", true);
+        } catch (Throwable t) {
+            Log.e("BR2Input", "setenv BR2_P1_DEVICE fallo", t);
+        }
+        Log.i("BR2Input", "pad=" + pad + " touch=" + br2TouchOn + " overlay=" + br2UseOverlay + " alpha=" + br2TouchAlpha);
+    }
+
+    private void br2AddTouchOverlay() {
+        if (!br2UseOverlay) return;
+        try {
+            TouchControlsView v = new TouchControlsView(this);
+            v.setAlphaPercent(br2TouchAlpha);
+            addContentView(v, new android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        } catch (Throwable t) {
+            Log.e("BR2Input", "overlay tactil fallo", t);
+        }
     }
 }

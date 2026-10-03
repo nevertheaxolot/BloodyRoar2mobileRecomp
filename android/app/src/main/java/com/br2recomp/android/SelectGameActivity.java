@@ -33,6 +33,13 @@ public class SelectGameActivity extends Activity {
         statusText = findViewById(R.id.text_status);
         biosStatusText = findViewById(R.id.text_bios_status);
         launchButton = findViewById(R.id.button_launch);
+        {
+            android.content.SharedPreferences tcPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            android.widget.CheckBox tcBoxInit = findViewById(R.id.check_touch);
+            android.widget.SeekBar tcSeekInit = findViewById(R.id.seek_touch);
+            if (tcBoxInit != null) tcBoxInit.setChecked(tcPrefs.getBoolean("touch_controls", true));
+            if (tcSeekInit != null) tcSeekInit.setProgress(tcPrefs.getInt("touch_alpha", 20));
+        }
         Button pickButton = findViewById(R.id.button_pick_iso);
         Button pickBiosButton = findViewById(R.id.button_pick_bios);
 
@@ -137,6 +144,15 @@ public class SelectGameActivity extends Activity {
         intent.putExtra("GAME_URI", selectedUri.toString());
         if (selectedBiosUri != null) {
             intent.putExtra("BIOS_URI", selectedBiosUri.toString());
+        }
+        {
+            android.widget.CheckBox tcBox = findViewById(R.id.check_touch);
+            android.widget.SeekBar tcSeek = findViewById(R.id.seek_touch);
+            boolean tcOn = tcBox == null || tcBox.isChecked();
+            int tcProg = tcSeek != null ? tcSeek.getProgress() : 20;
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean("touch_controls", tcOn).putInt("touch_alpha", tcProg).apply();
+            intent.putExtra("TOUCH_CONTROLS", tcOn);
+            intent.putExtra("TOUCH_ALPHA", 20 + tcProg);
         }
         startActivity(intent);
     }

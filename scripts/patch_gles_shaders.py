@@ -203,5 +203,5 @@ if 'BR2_P1_PAD' in m:
     print('P1: ya parcheado')
 else:
     print('P1 anclas:', m.count(old))
-    m = m.replace(old, '(i == 0) ? "gamepad" /*BR2_P1_PAD*/ : "none"')
+    m = m.replace(old, '(i == 0) ? (std::getenv("BR2_P1_DEVICE") ? std::getenv("BR2_P1_DEVICE") : "keyboard") /*BR2_P1_PAD*/ : "none"')
     open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)

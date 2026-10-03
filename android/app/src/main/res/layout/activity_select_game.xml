@@ -40,6 +40,30 @@
         android:layout_marginTop="16dp"
         android:text="Seleccionar BIOS (SCPH1001.BIN)" />
 
+    <CheckBox
+        android:id="@+id/check_touch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:checked="true"
+        android:text="Controles táctiles en pantalla"
+        android:textColor="#FFFFFF" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Opacidad de los controles"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp" />
+
+    <SeekBar
+        android:id="@+id/seek_touch"
+        android:layout_width="240dp"
+        android:layout_height="wrap_content"
+        android:max="80"
+        android:progress="20" />
+
     <Button
         android:id="@+id/button_launch"
         android:layout_width="wrap_content"

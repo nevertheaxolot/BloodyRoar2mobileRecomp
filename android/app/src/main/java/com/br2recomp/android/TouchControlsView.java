@@ -4,190 +4,228 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PointF;
-import android.util.AttributeSet;
+import android.graphics.Path;
+import android.graphics.RectF;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
 import org.libsdl.app.SDLActivity;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
-/**
- * Overlay táctil simple: un joystick virtual (movimiento) a la izquierda y
- * 4 botones de acción a la derecha (equivalentes a los botones de forma de
- * un DualShock: cuadrado/triángulo/círculo/equis, que en Bloody Roar 2
- * corresponden a golpe/patada/transformación/agarre).
- *
- * Este overlay va DENTRO de la misma Activity que SDLSurface, superpuesto
- * (por ejemplo en un FrameLayout). No sustituye el input real: traduce cada
- * toque en un evento sintético que SDL2 ya sabe interpretar como si viniera
- * de un joystick/gamepad conectado, usando la API pública de SDLActivity.
- *
- * NOTA: los nombres de botones (BUTTON_SQUARE, etc.) y el mapeo final deben
- * ajustarse a como el runtime de psxrecomp lea el input del pad — revisa
- * cómo psxrecomp traduce eventos de SDL_GameController a los botones del
- * PSX original antes de fijar el mapeo definitivo.
- */
+/** Controles tactiles: cada boton genera la tecla que el juego ya tiene por defecto. */
 public class TouchControlsView extends View {
+    private static final int K_UP = KeyEvent.KEYCODE_DPAD_UP;
+    private static final int K_DOWN = KeyEvent.KEYCODE_DPAD_DOWN;
+    private static final int K_LEFT = KeyEvent.KEYCODE_DPAD_LEFT;
+    private static final int K_RIGHT = KeyEvent.KEYCODE_DPAD_RIGHT;
+    private static final int K_CROSS = KeyEvent.KEYCODE_X;
+    private static final int K_CIRCLE = KeyEvent.KEYCODE_S;
+    private static final int K_SQUARE = KeyEvent.KEYCODE_Z;
+    private static final int K_TRIANGLE = KeyEvent.KEYCODE_A;
+    private static final int K_L1 = KeyEvent.KEYCODE_Q;
+    private static final int K_R1 = KeyEvent.KEYCODE_W;
+    private static final int K_L2 = KeyEvent.KEYCODE_E;
+    private static final int K_R2 = KeyEvent.KEYCODE_R;
+    private static final int K_START = KeyEvent.KEYCODE_ENTER;
+    private static final int K_SELECT = KeyEvent.KEYCODE_SHIFT_RIGHT;
 
-    private static final float STICK_RADIUS = 140f;
-    private static final float BUTTON_RADIUS = 80f;
+    private final Set<Integer> down = new HashSet<>();
+    private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path path = new Path();
+    private final RectF tmp = new RectF();
+    private int alpha = 100;
 
-    private final PointF stickCenter = new PointF();
-    private final PointF stickTouch = new PointF();
-    private boolean stickActive = false;
-    private int stickPointerId = -1;
+    private float dpCx, dpCy, dpR;
+    private float fbCx, fbCy, fbOff, fbR;
+    private final RectF rL1 = new RectF();
+    private final RectF rL2 = new RectF();
+    private final RectF rR1 = new RectF();
+    private final RectF rR2 = new RectF();
+    private final RectF rStart = new RectF();
+    private final RectF rSelect = new RectF();
 
-    // Botones de acción: id -> centro
-    private final Map<Integer, PointF> actionButtons = new HashMap<>();
-    private final Map<Integer, Integer> activeButtonPointers = new HashMap<>();
+    public TouchControlsView(Context context) {
+        super(context);
+        stroke.setStyle(Paint.Style.STROKE);
+        text.setTextAlign(Paint.Align.CENTER);
+        setFocusable(false);
+    }
 
-    private final Paint bgPaint = new Paint();
-    private final Paint fgPaint = new Paint();
-
-    public TouchControlsView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        bgPaint.setColor(Color.argb(90, 255, 255, 255));
-        fgPaint.setColor(Color.argb(160, 255, 255, 255));
-        setWillNotDraw(false);
+    public void setAlphaPercent(int pct) {
+        if (pct < 10) pct = 10;
+        if (pct > 100) pct = 100;
+        alpha = pct * 255 / 100;
+        invalidate();
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        // Joystick abajo-izquierda
-        stickCenter.set(220f, h - 220f);
-        stickTouch.set(stickCenter.x, stickCenter.y);
+        dpR = 0.17f * h;
+        dpCx = 0.113f * w;
+        dpCy = 0.66f * h;
+        fbR = 0.075f * h;
+        fbOff = 0.125f * h;
+        fbCx = 0.887f * w;
+        fbCy = 0.66f * h;
+        float bw = 0.17f * w, bh = 0.095f * h, gap = 0.02f * h, top = 0.06f * h;
+        float lx = 0.028f * w, rx = w - 0.028f * w - bw;
+        rL2.set(lx, top, lx + bw, top + bh);
+        rL1.set(lx, top + bh + gap, lx + bw, top + 2 * bh + gap);
+        rR2.set(rx, top, rx + bw, top + bh);
+        rR1.set(rx, top + bh + gap, rx + bw, top + 2 * bh + gap);
+        float sw = 0.12f * w, sh = 0.07f * h, sy = 0.90f * h;
+        rSelect.set(0.06f * w, sy - sh / 2, 0.06f * w + sw, sy + sh / 2);
+        rStart.set(w - 0.06f * w - sw, sy - sh / 2, w - 0.06f * w, sy + sh / 2);
+    }
 
-        // 4 botones en rombo abajo-derecha (imitando la disposición de un pad)
-        float bx = w - 260f;
-        float by = h - 260f;
-        actionButtons.put(0, new PointF(bx, by - 90f));       // arriba
-        actionButtons.put(1, new PointF(bx + 90f, by));       // derecha
-        actionButtons.put(2, new PointF(bx, by + 90f));       // abajo
-        actionButtons.put(3, new PointF(bx - 90f, by));       // izquierda
+    private void collect(float x, float y, Set<Integer> out) {
+        float dx = x - dpCx, dy = y - dpCy;
+        if (Math.hypot(dx, dy) <= dpR * 1.4f) {
+            float dz = dpR * 0.28f;
+            if (dx < -dz) out.add(K_LEFT);
+            if (dx > dz) out.add(K_RIGHT);
+            if (dy < -dz) out.add(K_UP);
+            if (dy > dz) out.add(K_DOWN);
+        }
+        float lim = fbR * 1.15f;
+        if (Math.hypot(x - fbCx, y - (fbCy - fbOff)) <= lim) out.add(K_TRIANGLE);
+        if (Math.hypot(x - (fbCx + fbOff), y - fbCy) <= lim) out.add(K_CIRCLE);
+        if (Math.hypot(x - fbCx, y - (fbCy + fbOff)) <= lim) out.add(K_CROSS);
+        if (Math.hypot(x - (fbCx - fbOff), y - fbCy) <= lim) out.add(K_SQUARE);
+        if (hit(rL1, x, y)) out.add(K_L1);
+        if (hit(rL2, x, y)) out.add(K_L2);
+        if (hit(rR1, x, y)) out.add(K_R1);
+        if (hit(rR2, x, y)) out.add(K_R2);
+        if (hit(rStart, x, y)) out.add(K_START);
+        if (hit(rSelect, x, y)) out.add(K_SELECT);
+    }
+
+    private boolean hit(RectF r, float x, float y) {
+        float p = r.height() * 0.2f;
+        return x >= r.left - p && x <= r.right + p && y >= r.top - p && y <= r.bottom + p;
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        canvas.drawCircle(stickCenter.x, stickCenter.y, STICK_RADIUS, bgPaint);
-        canvas.drawCircle(stickTouch.x, stickTouch.y, 60f, fgPaint);
-
-        for (Map.Entry<Integer, PointF> e : actionButtons.entrySet()) {
-            PointF p = e.getValue();
-            boolean pressed = activeButtonPointers.containsKey(e.getKey());
-            canvas.drawCircle(p.x, p.y, BUTTON_RADIUS,
-                    pressed ? fgPaint : bgPaint);
+    public boolean onTouchEvent(MotionEvent e) {
+        int action = e.getActionMasked();
+        int skip = -1;
+        if (action == MotionEvent.ACTION_POINTER_UP || action == MotionEvent.ACTION_UP) {
+            skip = e.getActionIndex();
         }
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        int action = event.getActionMasked();
-        int index = event.getActionIndex();
-        int pointerId = event.getPointerId(index);
-        float x = event.getX(index);
-        float y = event.getY(index);
-
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_POINTER_DOWN:
-                handleDown(pointerId, x, y);
-                break;
-            case MotionEvent.ACTION_MOVE:
-                for (int i = 0; i < event.getPointerCount(); i++) {
-                    handleMove(event.getPointerId(i), event.getX(i), event.getY(i));
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_POINTER_UP:
-            case MotionEvent.ACTION_CANCEL:
-                handleUp(pointerId);
-                break;
+        Set<Integer> now = new HashSet<>();
+        if (action != MotionEvent.ACTION_CANCEL) {
+            for (int i = 0; i < e.getPointerCount(); i++) {
+                if (i == skip) continue;
+                collect(e.getX(i), e.getY(i), now);
+            }
         }
-        invalidate();
+        boolean changed = false;
+        for (int k : now) {
+            if (!down.contains(k)) { SDLActivity.onNativeKeyDown(k); changed = true; }
+        }
+        for (int k : down) {
+            if (!now.contains(k)) { SDLActivity.onNativeKeyUp(k); changed = true; }
+        }
+        if (changed) {
+            down.clear();
+            down.addAll(now);
+            invalidate();
+        }
         return true;
     }
 
-    private boolean within(float x, float y, PointF center, float radius) {
-        float dx = x - center.x;
-        float dy = y - center.y;
-        return (dx * dx + dy * dy) <= radius * radius * 4; // margen táctil generoso
+    private void releaseAll() {
+        for (int k : down) SDLActivity.onNativeKeyUp(k);
+        down.clear();
+        invalidate();
     }
 
-    private void handleDown(int pointerId, float x, float y) {
-        if (!stickActive && within(x, y, stickCenter, STICK_RADIUS)) {
-            stickActive = true;
-            stickPointerId = pointerId;
-            updateStick(x, y);
-            return;
-        }
-        for (Map.Entry<Integer, PointF> e : actionButtons.entrySet()) {
-            if (within(x, y, e.getValue(), BUTTON_RADIUS)
-                    && !activeButtonPointers.containsKey(e.getKey())) {
-                activeButtonPointers.put(e.getKey(), pointerId);
-                sendButton(e.getKey(), true);
-            }
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (!hasFocus) releaseAll();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        releaseAll();
+        super.onDetachedFromWindow();
+    }
+
+    private void arm(Canvas c, float l, float t, float r, float b, boolean on) {
+        tmp.set(l, t, r, b);
+        fill.setColor(Color.argb(on ? Math.min(255, alpha + 90) : alpha / 2, 255, 255, 255));
+        c.drawRoundRect(tmp, 12f, 12f, fill);
+        stroke.setColor(Color.argb(Math.min(255, alpha + 60), 255, 255, 255));
+        stroke.setStrokeWidth(Math.max(2f, dpR * 0.03f));
+        c.drawRoundRect(tmp, 12f, 12f, stroke);
+    }
+
+    private void box(Canvas c, RectF r, String label, boolean on) {
+        fill.setColor(Color.argb(on ? Math.min(255, alpha + 90) : alpha / 2, 255, 255, 255));
+        c.drawRoundRect(r, r.height() / 3f, r.height() / 3f, fill);
+        stroke.setColor(Color.argb(Math.min(255, alpha + 60), 255, 255, 255));
+        stroke.setStrokeWidth(Math.max(2f, r.height() * 0.05f));
+        c.drawRoundRect(r, r.height() / 3f, r.height() / 3f, stroke);
+        text.setColor(Color.argb(Math.min(255, alpha + 100), 255, 255, 255));
+        text.setTextSize(r.height() * 0.45f);
+        c.drawText(label, r.centerX(), r.centerY() - (text.ascent() + text.descent()) / 2f, text);
+    }
+
+    private void face(Canvas c, float cx, float cy, int kind, boolean on) {
+        fill.setColor(Color.argb(on ? Math.min(255, alpha + 90) : alpha / 2, 255, 255, 255));
+        c.drawCircle(cx, cy, fbR, fill);
+        stroke.setColor(Color.argb(Math.min(255, alpha + 60), 255, 255, 255));
+        stroke.setStrokeWidth(fbR * 0.08f);
+        c.drawCircle(cx, cy, fbR, stroke);
+        int cr = 255, cg = 255, cb = 255;
+        if (kind == 0) { cr = 80; cg = 220; cb = 150; }
+        else if (kind == 1) { cr = 255; cg = 90; cb = 90; }
+        else if (kind == 2) { cr = 110; cg = 160; cb = 255; }
+        else { cr = 240; cg = 130; cb = 220; }
+        stroke.setColor(Color.argb(Math.min(255, alpha + 120), cr, cg, cb));
+        stroke.setStrokeWidth(fbR * 0.14f);
+        float s = fbR * 0.45f;
+        if (kind == 0) {
+            path.reset();
+            path.moveTo(cx, cy - s);
+            path.lineTo(cx + s, cy + s * 0.8f);
+            path.lineTo(cx - s, cy + s * 0.8f);
+            path.close();
+            c.drawPath(path, stroke);
+        } else if (kind == 1) {
+            c.drawCircle(cx, cy, s, stroke);
+        } else if (kind == 2) {
+            c.drawLine(cx - s, cy - s, cx + s, cy + s, stroke);
+            c.drawLine(cx - s, cy + s, cx + s, cy - s, stroke);
+        } else {
+            c.drawRect(cx - s, cy - s, cx + s, cy + s, stroke);
         }
     }
 
-    private void handleMove(int pointerId, float x, float y) {
-        if (stickActive && pointerId == stickPointerId) {
-            updateStick(x, y);
-        }
-    }
-
-    private void handleUp(int pointerId) {
-        if (pointerId == stickPointerId) {
-            stickActive = false;
-            stickPointerId = -1;
-            stickTouch.set(stickCenter.x, stickCenter.y);
-            sendAxis(0, 0);
-        }
-        Integer releasedButton = null;
-        for (Map.Entry<Integer, Integer> e : activeButtonPointers.entrySet()) {
-            if (e.getValue() == pointerId) {
-                releasedButton = e.getKey();
-                break;
-            }
-        }
-        if (releasedButton != null) {
-            activeButtonPointers.remove(releasedButton);
-            sendButton(releasedButton, false);
-        }
-    }
-
-    private void updateStick(float x, float y) {
-        float dx = x - stickCenter.x;
-        float dy = y - stickCenter.y;
-        float dist = (float) Math.sqrt(dx * dx + dy * dy);
-        float maxDist = STICK_RADIUS;
-        if (dist > maxDist) {
-            dx = dx / dist * maxDist;
-            dy = dy / dist * maxDist;
-        }
-        stickTouch.set(stickCenter.x + dx, stickCenter.y + dy);
-        sendAxis(dx / maxDist, dy / maxDist);
-    }
-
-    /**
-     * Envía el estado del stick como si fuera un joystick/gamepad conectado.
-     * SDLActivity expone un canal para inyectar eventos de "joystick virtual"
-     * mediante su clase SDLControllerManager; el detalle exacto de la llamada
-     * depende de la versión de SDL2-Android que integres (revisa
-     * SDLActivity.onNativePadDown / onNativeJoy en la fuente de SDL2 que
-     * descargues, y ajusta estas llamadas para que coincidan).
-     */
-    private void sendAxis(float x, float y) {
-        // TODO: reemplazar por la llamada real, p. ej.:
-        // SDLActivity.onNativeJoy(0, 0, x);
-        // SDLActivity.onNativeJoy(0, 1, y);
-    }
-
-    private void sendButton(int buttonId, boolean pressed) {
-        // TODO: reemplazar por la llamada real, p. ej.:
-        // SDLActivity.onNativePadButton(0, buttonId, pressed ? 1 : 0);
+    @Override
+    protected void onDraw(Canvas c) {
+        float a = dpR * 0.34f;
+        arm(c, dpCx - a, dpCy - dpR, dpCx + a, dpCy - a, down.contains(K_UP));
+        arm(c, dpCx - a, dpCy + a, dpCx + a, dpCy + dpR, down.contains(K_DOWN));
+        arm(c, dpCx - dpR, dpCy - a, dpCx - a, dpCy + a, down.contains(K_LEFT));
+        arm(c, dpCx + a, dpCy - a, dpCx + dpR, dpCy + a, down.contains(K_RIGHT));
+        arm(c, dpCx - a, dpCy - a, dpCx + a, dpCy + a, false);
+        face(c, fbCx, fbCy - fbOff, 0, down.contains(K_TRIANGLE));
+        face(c, fbCx + fbOff, fbCy, 1, down.contains(K_CIRCLE));
+        face(c, fbCx, fbCy + fbOff, 2, down.contains(K_CROSS));
+        face(c, fbCx - fbOff, fbCy, 3, down.contains(K_SQUARE));
+        box(c, rL1, "L1", down.contains(K_L1));
+        box(c, rL2, "L2", down.contains(K_L2));
+        box(c, rR1, "R1", down.contains(K_R1));
+        box(c, rR2, "R2", down.contains(K_R2));
+        box(c, rSelect, "SELECT", down.contains(K_SELECT));
+        box(c, rStart, "START", down.contains(K_START));
     }
 }

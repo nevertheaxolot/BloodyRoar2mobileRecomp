@@ -175,3 +175,22 @@ else:
     print('PERF anclas:', m.count(anc))
     m = m.replace(anc, anc + ' /*BR2_GL_PERF_ENV*/ setenv("PSX_GL_PERF", "1", 1);', 1)
     open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)
+
+# --- diag: info detallada de joysticks ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+old = 'fprintf(stdout, "BR2IN joysticks=%d\\n", SDL_NumJoysticks());'
+if 'BR2IN joy[' in s:
+    print('JOY: ya parcheado')
+else:
+    new = ('{ int br2n = SDL_NumJoysticks(); fprintf(stdout, "BR2IN joysticks=%d\\n", br2n); '
+           'for (int i = 0; i < br2n; i++) { char gs[64]; SDL_JoystickGUID g = SDL_JoystickGetDeviceGUID(i); SDL_JoystickGetGUIDString(g, gs, (int)sizeof gs); '
+           'SDL_Joystick *j = SDL_JoystickOpen(i); const char *jn = SDL_JoystickNameForIndex(i); '
+           'fprintf(stdout, "BR2IN joy[%d] name=%s guid=%s isGC=%d buttons=%d axes=%d hats=%d\\n", i, jn ? jn : "?", gs, (int)SDL_IsGameController(i), j ? SDL_JoystickNumButtons(j) : -1, j ? SDL_JoystickNumAxes(j) : -1, j ? SDL_JoystickNumHats(j) : -1); '
+           'char *mp = SDL_GameControllerMappingForGUID(g); fprintf(stdout, "BR2IN joy[%d] mapping=%s\\n", i, mp ? mp : "(none)"); if (mp) SDL_free(mp); } } ')
+    print('JOY anclas:', s.count(old))
+    s = s.replace(old, new, 1)
+    ax = 'else if (e->type == SDL_JOYHATMOTION)'
+    axnew = 'else if (e->type == SDL_JOYAXISMOTION && (e->jaxis.value > 20000 || e->jaxis.value < -20000)) fprintf(stdout, "BR2IN axis %d value %d\\n", (int)e->jaxis.axis, (int)e->jaxis.value);\n    ' + ax
+    print('AXIS anclas:', s.count(ax))
+    s = s.replace(ax, axnew, 1)
+    open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)

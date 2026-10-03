@@ -205,3 +205,81 @@ else:
     print('P1 anclas:', m.count(old))
     m = m.replace(old, '(i == 0) ? (std::getenv("BR2_P1_DEVICE") ? std::getenv("BR2_P1_DEVICE") : "keyboard") /*BR2_P1_PAD*/ : "none"')
     open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)
+
+# --- diag: hilos, nucleos y frecuencias (BR2PERF) ---
+ph = 'psxrecomp/runtime/src/android_stdio_log.h'
+h = open(ph, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'br2_perf_thread' in h:
+    print('PERF2: ya parcheado')
+else:
+    a1 = 'static inline void br2_redirect_stdio() {\n  setvbuf(stdout'
+    a2 = 'pthread_detach(t);\n}\n#else'
+    print('PERF2 anclas: a1=%d a2=%d' % (h.count(a1), h.count(a2)))
+    code = r'''#include <dirent.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#define BR2S5 "%*s %*s %*s %*s %*s "
+struct br2_ti { int tid; unsigned long long t; int cpu; char name[24]; };
+static void* br2_perf_thread(void*) {
+  static br2_ti prev[512]; static int np = 0;
+  static br2_ti cur[512];
+  const long hz = sysconf(_SC_CLK_TCK);
+  for (;;) {
+    struct timespec ts = {2, 0}; nanosleep(&ts, nullptr);
+    int n = 0;
+    DIR* d = opendir("/proc/self/task");
+    if (!d) continue;
+    struct dirent* e;
+    while ((e = readdir(d)) != nullptr && n < 512) {
+      int tid = atoi(e->d_name); if (tid <= 0) continue;
+      char p[96], buf[640];
+      snprintf(p, sizeof p, "/proc/self/task/%d/stat", tid);
+      FILE* f = fopen(p, "r"); if (!f) continue;
+      size_t k = fread(buf, 1, sizeof buf - 1, f); fclose(f); buf[k] = 0;
+      char* rp = strrchr(buf, ')'); if (!rp) continue;
+      unsigned long long ut = 0, st = 0; int cpu = -1;
+      if (sscanf(rp + 2, "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %llu %llu " BR2S5 BR2S5 BR2S5 BR2S5 "%*s %*s %*s %d", &ut, &st, &cpu) < 2) continue;
+      cur[n].name[0] = 0;
+      snprintf(p, sizeof p, "/proc/self/task/%d/comm", tid);
+      f = fopen(p, "r");
+      if (f) { if (fgets(cur[n].name, sizeof cur[n].name, f)) { size_t L = strlen(cur[n].name); while (L && cur[n].name[L - 1] == '\n') cur[n].name[--L] = 0; } fclose(f); }
+      cur[n].tid = tid; cur[n].t = ut + st; cur[n].cpu = cpu; n++;
+    }
+    closedir(d);
+    int best[4] = {-1, -1, -1, -1}; double bp[4] = {0, 0, 0, 0};
+    for (int i = 0; i < n; i++) {
+      unsigned long long pt = 0;
+      for (int j = 0; j < np; j++) if (prev[j].tid == cur[i].tid) { pt = prev[j].t; break; }
+      double pct = (pt && cur[i].t >= pt) ? 100.0 * (double)(cur[i].t - pt) / (double)(hz * 2) : 0.0;
+      for (int s = 0; s < 4; s++) {
+        if (best[s] < 0 || pct > bp[s]) {
+          for (int m = 3; m > s; m--) { best[m] = best[m - 1]; bp[m] = bp[m - 1]; }
+          best[s] = i; bp[s] = pct; break;
+        }
+      }
+    }
+    char line[512]; int o = snprintf(line, sizeof line, "BR2PERF");
+    for (int s = 0; s < 4 && best[s] >= 0 && o < 380; s++)
+      o += snprintf(line + o, sizeof line - o, " [%s tid=%d %.0f%% cpu%d]", cur[best[s]].name, cur[best[s]].tid, bp[s], cur[best[s]].cpu);
+    o += snprintf(line + o, sizeof line - o, " | MHz:");
+    for (int c = 0; c < 8 && o < 470; c++) {
+      char p2[96]; snprintf(p2, sizeof p2, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", c);
+      FILE* f = fopen(p2, "r"); long fr = 0;
+      if (f) { if (fscanf(f, "%ld", &fr) != 1) fr = 0; fclose(f); }
+      o += snprintf(line + o, sizeof line - o, " %ld", fr / 1000);
+    }
+    fprintf(stdout, "%s\n", line);
+    memcpy(prev, cur, sizeof(br2_ti) * n); np = n;
+  }
+  return nullptr;
+}
+static inline void br2_start_perf() { pthread_t t; if (pthread_create(&t, nullptr, br2_perf_thread, nullptr) == 0) pthread_detach(t); }
+'''
+    if h.count(a1) == 1 and h.count(a2) == 1:
+        h = h.replace(a1, code + a1, 1)
+        h = h.replace(a2, 'pthread_detach(t);\n  br2_start_perf();\n}\n#else', 1)
+        open(ph, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(h)
+        print('PERF2: OK')
+    else:
+        print('PERF2: ANCLAS NO COINCIDEN, no se modifico')

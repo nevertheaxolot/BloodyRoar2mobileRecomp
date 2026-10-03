@@ -26,7 +26,8 @@
             android:name=".MainActivity"
             android:exported="false"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:screenOrientation="landscape">
+            android:screenOrientation="sensorLandscape"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
         </activity>
     </application>
 </manifest>

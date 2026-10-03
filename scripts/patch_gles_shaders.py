@@ -283,3 +283,90 @@ static inline void br2_start_perf() { pthread_t t; if (pthread_create(&t, nullpt
         print('PERF2: OK')
     else:
         print('PERF2: ANCLAS NO COINCIDEN, no se modifico')
+
+# --- diag: muestreador de funciones (BR2PROF) ---
+ph = 'psxrecomp/runtime/src/android_stdio_log.h'
+h = open(ph, encoding='utf-8', errors='surrogateescape', newline='').read()
+old = 'static inline void br2_start_perf() { pthread_t t; if (pthread_create(&t, nullptr, br2_perf_thread, nullptr) == 0) pthread_detach(t); }\n'
+if 'br2_prof_thread' in h:
+    print('PROF: ya parcheado')
+else:
+    print('PROF anclas:', h.count(old))
+    newcode = r'''#include <signal.h>
+#include <ucontext.h>
+#include <dlfcn.h>
+#include <sys/syscall.h>
+static volatile int br2_game_tid = 0;
+static uintptr_t br2_samples[8192];
+static volatile unsigned br2_head = 0;
+static void br2_prof_handler(int, siginfo_t*, void* uc) {
+#if defined(__aarch64__)
+  br2_samples[br2_head++ & 8191u] = (uintptr_t)((ucontext_t*)uc)->uc_mcontext.pc;
+#else
+  (void)uc;
+#endif
+}
+struct br2_ent { uintptr_t key; unsigned n; char name[72]; };
+static void* br2_prof_thread(void*) {
+  int reports = 0;
+  const pid_t pid = getpid();
+  while (reports < 36) {
+    unsigned t0 = br2_head;
+    for (int i = 0; i < 5000; i++) {
+      struct timespec ts = {0, 1000000}; nanosleep(&ts, nullptr);
+      syscall(SYS_tgkill, pid, (pid_t)br2_game_tid, SIGPROF);
+    }
+    unsigned cnt = br2_head - t0; if (cnt > 8192) cnt = 8192;
+    static br2_ent tab[256]; int nt = 0;
+    for (unsigned i = 0; i < cnt; i++) {
+      uintptr_t pc = br2_samples[(t0 + i) & 8191u];
+      Dl_info di; memset(&di, 0, sizeof di);
+      uintptr_t key = pc >> 12; const char* sn = nullptr; const char* fn = nullptr;
+      if (dladdr((void*)pc, &di)) { if (di.dli_saddr) key = (uintptr_t)di.dli_saddr; sn = di.dli_sname; fn = di.dli_fname; }
+      int f = -1;
+      for (int j = 0; j < nt; j++) if (tab[j].key == key) { f = j; break; }
+      if (f < 0 && nt < 256) {
+        f = nt++; tab[f].key = key; tab[f].n = 0;
+        const char* base = fn ? strrchr(fn, '/') : nullptr;
+        base = base ? base + 1 : (fn ? fn : "?");
+        snprintf(tab[f].name, sizeof tab[f].name, "%s@%s", sn ? sn : "?", base);
+      }
+      if (f >= 0) tab[f].n++;
+    }
+    char line[900]; int o = snprintf(line, sizeof line, "BR2PROF n=%u:", cnt);
+    for (int r = 0; r < 8; r++) {
+      int b = -1;
+      for (int j = 0; j < nt; j++) if (tab[j].n && (b < 0 || tab[j].n > tab[b].n)) b = j;
+      if (b < 0 || o > 780) break;
+      o += snprintf(line + o, sizeof line - o, " %.0f%% %s |", cnt ? 100.0 * tab[b].n / cnt : 0.0, tab[b].name);
+      tab[b].n = 0;
+    }
+    fprintf(stdout, "%s\n", line);
+    reports++;
+  }
+  return nullptr;
+}
+static inline void br2_start_perf() {
+  pthread_t t;
+  if (pthread_create(&t, nullptr, br2_perf_thread, nullptr) == 0) pthread_detach(t);
+#if defined(__aarch64__)
+  br2_game_tid = (int)syscall(SYS_gettid);
+  stack_t ss; ss.ss_sp = malloc(65536); ss.ss_size = 65536; ss.ss_flags = 0;
+  if (ss.ss_sp && sigaltstack(&ss, nullptr) == 0) {
+    struct sigaction sa; memset(&sa, 0, sizeof sa);
+    sa.sa_sigaction = br2_prof_handler; sa.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_RESTART;
+    sigemptyset(&sa.sa_mask);
+    if (sigaction(SIGPROF, &sa, nullptr) == 0) {
+      pthread_t t2;
+      if (pthread_create(&t2, nullptr, br2_prof_thread, nullptr) == 0) pthread_detach(t2);
+    }
+  }
+#endif
+}
+'''
+    if h.count(old) == 1:
+        h = h.replace(old, newcode, 1)
+        open(ph, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(h)
+        print('PROF: OK')
+    else:
+        print('PROF: ANCLA NO COINCIDE, no se modifico')

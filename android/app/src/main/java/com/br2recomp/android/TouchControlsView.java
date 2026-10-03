@@ -2,10 +2,11 @@ package com.br2recomp.android;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RectF;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
+import android.graphics.Typeface;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -15,7 +16,7 @@ import org.libsdl.app.SDLActivity;
 import java.util.HashSet;
 import java.util.Set;
 
-/** Controles tactiles: cada boton genera la tecla que el juego ya tiene por defecto. */
+/** Controles tactiles: resplandor rojo + simbolos amarillos. Cada boton genera la tecla por defecto del juego. */
 public class TouchControlsView extends View {
     private static final int K_UP = KeyEvent.KEYCODE_DPAD_UP;
     private static final int K_DOWN = KeyEvent.KEYCODE_DPAD_DOWN;
@@ -33,26 +34,29 @@ public class TouchControlsView extends View {
     private static final int K_SELECT = KeyEvent.KEYCODE_SHIFT_RIGHT;
 
     private final Set<Integer> down = new HashSet<>();
-    private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint ink = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
-    private final RectF tmp = new RectF();
-    private int alpha = 100;
+    private final Shader glowShader = new RadialGradient(0f, 0f, 1f,
+            new int[]{0xFFFF1A1A, 0xCCFF0000, 0x00FF0000},
+            new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP);
+    private int alpha = 140;
 
     private float dpCx, dpCy, dpR;
     private float fbCx, fbCy, fbOff, fbR;
-    private final RectF rL1 = new RectF();
-    private final RectF rL2 = new RectF();
-    private final RectF rR1 = new RectF();
-    private final RectF rR2 = new RectF();
-    private final RectF rStart = new RectF();
-    private final RectF rSelect = new RectF();
+    private float shR, sh2R, ssR;
+    private float l1x, l1y, r1x, r1y, l2x, l2y, r2x, r2y, slx, sly, stx, sty;
 
     public TouchControlsView(Context context) {
         super(context);
-        stroke.setStyle(Paint.Style.STROKE);
-        text.setTextAlign(Paint.Align.CENTER);
+        glow.setShader(glowShader);
+        glow.setStyle(Paint.Style.FILL);
+        ink.setStyle(Paint.Style.STROKE);
+        ink.setStrokeCap(Paint.Cap.ROUND);
+        ink.setStrokeJoin(Paint.Join.ROUND);
+        label.setTextAlign(Paint.Align.CENTER);
+        label.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD_ITALIC));
         setFocusable(false);
     }
 
@@ -66,22 +70,27 @@ public class TouchControlsView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        dpR = 0.17f * h;
-        dpCx = 0.113f * w;
-        dpCy = 0.66f * h;
-        fbR = 0.075f * h;
-        fbOff = 0.125f * h;
-        fbCx = 0.887f * w;
-        fbCy = 0.66f * h;
-        float bw = 0.17f * w, bh = 0.095f * h, gap = 0.02f * h, top = 0.06f * h;
-        float lx = 0.028f * w, rx = w - 0.028f * w - bw;
-        rL2.set(lx, top, lx + bw, top + bh);
-        rL1.set(lx, top + bh + gap, lx + bw, top + 2 * bh + gap);
-        rR2.set(rx, top, rx + bw, top + bh);
-        rR1.set(rx, top + bh + gap, rx + bw, top + 2 * bh + gap);
-        float sw = 0.12f * w, sh = 0.07f * h, sy = 0.90f * h;
-        rSelect.set(0.06f * w, sy - sh / 2, 0.06f * w + sw, sy + sh / 2);
-        rStart.set(w - 0.06f * w - sw, sy - sh / 2, w - 0.06f * w, sy + sh / 2);
+        ink.setStrokeWidth(Math.max(3f, 0.016f * h));
+        dpR = 0.21f * h;
+        dpCx = 0.097f * w;
+        dpCy = 0.54f * h;
+        fbR = 0.095f * h;
+        fbOff = 0.215f * h;
+        fbCx = 0.863f * w;
+        fbCy = 0.55f * h;
+        shR = 0.085f * h;
+        sh2R = 0.06f * h;
+        ssR = 0.065f * h;
+        l1x = 0.16f * w; l1y = 0.075f * h;
+        r1x = 0.80f * w; r1y = 0.075f * h;
+        l2x = 0.06f * w; l2y = 0.075f * h;
+        r2x = 0.93f * w; r2y = 0.075f * h;
+        slx = 0.225f * w; sly = 0.88f * h;
+        stx = 0.72f * w; sty = 0.88f * h;
+    }
+
+    private boolean near(float x, float y, float cx, float cy, float r) {
+        return Math.hypot(x - cx, y - cy) <= r * 1.25f;
     }
 
     private void collect(float x, float y, Set<Integer> out) {
@@ -93,22 +102,16 @@ public class TouchControlsView extends View {
             if (dy < -dz) out.add(K_UP);
             if (dy > dz) out.add(K_DOWN);
         }
-        float lim = fbR * 1.15f;
-        if (Math.hypot(x - fbCx, y - (fbCy - fbOff)) <= lim) out.add(K_TRIANGLE);
-        if (Math.hypot(x - (fbCx + fbOff), y - fbCy) <= lim) out.add(K_CIRCLE);
-        if (Math.hypot(x - fbCx, y - (fbCy + fbOff)) <= lim) out.add(K_CROSS);
-        if (Math.hypot(x - (fbCx - fbOff), y - fbCy) <= lim) out.add(K_SQUARE);
-        if (hit(rL1, x, y)) out.add(K_L1);
-        if (hit(rL2, x, y)) out.add(K_L2);
-        if (hit(rR1, x, y)) out.add(K_R1);
-        if (hit(rR2, x, y)) out.add(K_R2);
-        if (hit(rStart, x, y)) out.add(K_START);
-        if (hit(rSelect, x, y)) out.add(K_SELECT);
-    }
-
-    private boolean hit(RectF r, float x, float y) {
-        float p = r.height() * 0.2f;
-        return x >= r.left - p && x <= r.right + p && y >= r.top - p && y <= r.bottom + p;
+        if (near(x, y, fbCx, fbCy - fbOff, fbR)) out.add(K_TRIANGLE);
+        if (near(x, y, fbCx + fbOff, fbCy, fbR)) out.add(K_CIRCLE);
+        if (near(x, y, fbCx, fbCy + fbOff, fbR)) out.add(K_CROSS);
+        if (near(x, y, fbCx - fbOff, fbCy, fbR)) out.add(K_SQUARE);
+        if (near(x, y, l1x, l1y, shR)) out.add(K_L1);
+        if (near(x, y, r1x, r1y, shR)) out.add(K_R1);
+        if (near(x, y, l2x, l2y, sh2R)) out.add(K_L2);
+        if (near(x, y, r2x, r2y, sh2R)) out.add(K_R2);
+        if (near(x, y, slx, sly, ssR)) out.add(K_SELECT);
+        if (near(x, y, stx, sty, ssR)) out.add(K_START);
     }
 
     @Override
@@ -158,74 +161,81 @@ public class TouchControlsView extends View {
         super.onDetachedFromWindow();
     }
 
-    private void arm(Canvas c, float l, float t, float r, float b, boolean on) {
-        tmp.set(l, t, r, b);
-        fill.setColor(Color.argb(on ? Math.min(255, alpha + 90) : alpha / 2, 255, 255, 255));
-        c.drawRoundRect(tmp, 12f, 12f, fill);
-        stroke.setColor(Color.argb(Math.min(255, alpha + 60), 255, 255, 255));
-        stroke.setStrokeWidth(Math.max(2f, dpR * 0.03f));
-        c.drawRoundRect(tmp, 12f, 12f, stroke);
+    private void drawGlow(Canvas c, float cx, float cy, float r, boolean on) {
+        glow.setAlpha(on ? Math.min(255, alpha + 110) : alpha);
+        c.save();
+        c.translate(cx, cy);
+        c.scale(r, r);
+        c.drawCircle(0f, 0f, 1f, glow);
+        c.restore();
     }
 
-    private void box(Canvas c, RectF r, String label, boolean on) {
-        fill.setColor(Color.argb(on ? Math.min(255, alpha + 90) : alpha / 2, 255, 255, 255));
-        c.drawRoundRect(r, r.height() / 3f, r.height() / 3f, fill);
-        stroke.setColor(Color.argb(Math.min(255, alpha + 60), 255, 255, 255));
-        stroke.setStrokeWidth(Math.max(2f, r.height() * 0.05f));
-        c.drawRoundRect(r, r.height() / 3f, r.height() / 3f, stroke);
-        text.setColor(Color.argb(Math.min(255, alpha + 100), 255, 255, 255));
-        text.setTextSize(r.height() * 0.45f);
-        c.drawText(label, r.centerX(), r.centerY() - (text.ascent() + text.descent()) / 2f, text);
+    private void inkStyle(boolean on) {
+        ink.setColor(on ? 0xFFFFFFA0 : 0xFFFFE600);
+        ink.setAlpha(Math.min(255, alpha + (on ? 115 : 80)));
+    }
+
+    private void arrow(Canvas c, float dx, float dy, boolean on) {
+        if (on) drawGlow(c, dpCx + dx * dpR * 0.6f, dpCy + dy * dpR * 0.6f, dpR * 0.55f, true);
+        inkStyle(on);
+        float bx = dpCx + dx * dpR * 0.22f, by = dpCy + dy * dpR * 0.22f;
+        float tx = dpCx + dx * dpR * 0.95f, ty = dpCy + dy * dpR * 0.95f;
+        float px = -dy, py = dx;
+        float hl = dpR * 0.30f, hw = dpR * 0.26f;
+        c.drawLine(bx, by, tx, ty, ink);
+        c.drawLine(tx, ty, tx - dx * hl + px * hw, ty - dy * hl + py * hw, ink);
+        c.drawLine(tx, ty, tx - dx * hl - px * hw, ty - dy * hl - py * hw, ink);
     }
 
     private void face(Canvas c, float cx, float cy, int kind, boolean on) {
-        fill.setColor(Color.argb(on ? Math.min(255, alpha + 90) : alpha / 2, 255, 255, 255));
-        c.drawCircle(cx, cy, fbR, fill);
-        stroke.setColor(Color.argb(Math.min(255, alpha + 60), 255, 255, 255));
-        stroke.setStrokeWidth(fbR * 0.08f);
-        c.drawCircle(cx, cy, fbR, stroke);
-        int cr = 255, cg = 255, cb = 255;
-        if (kind == 0) { cr = 80; cg = 220; cb = 150; }
-        else if (kind == 1) { cr = 255; cg = 90; cb = 90; }
-        else if (kind == 2) { cr = 110; cg = 160; cb = 255; }
-        else { cr = 240; cg = 130; cb = 220; }
-        stroke.setColor(Color.argb(Math.min(255, alpha + 120), cr, cg, cb));
-        stroke.setStrokeWidth(fbR * 0.14f);
-        float s = fbR * 0.45f;
-        if (kind == 0) {
-            path.reset();
-            path.moveTo(cx, cy - s);
-            path.lineTo(cx + s, cy + s * 0.8f);
-            path.lineTo(cx - s, cy + s * 0.8f);
-            path.close();
-            c.drawPath(path, stroke);
-        } else if (kind == 1) {
-            c.drawCircle(cx, cy, s, stroke);
-        } else if (kind == 2) {
-            c.drawLine(cx - s, cy - s, cx + s, cy + s, stroke);
-            c.drawLine(cx - s, cy + s, cx + s, cy - s, stroke);
-        } else {
-            c.drawRect(cx - s, cy - s, cx + s, cy + s, stroke);
+        drawGlow(c, cx, cy, fbR * 1.25f, on);
+        inkStyle(on);
+        float s = fbR * 0.55f;
+        switch (kind) {
+            case 0:
+                path.reset();
+                path.moveTo(cx, cy - s);
+                path.lineTo(cx + s, cy + s * 0.8f);
+                path.lineTo(cx - s, cy + s * 0.8f);
+                path.close();
+                c.drawPath(path, ink);
+                break;
+            case 1:
+                c.drawCircle(cx, cy, s, ink);
+                break;
+            case 2:
+                c.drawLine(cx - s, cy - s, cx + s, cy + s, ink);
+                c.drawLine(cx - s, cy + s, cx + s, cy - s, ink);
+                break;
+            default:
+                c.drawRect(cx - s, cy - s, cx + s, cy + s, ink);
         }
+    }
+
+    private void pill(Canvas c, float cx, float cy, float r, String t, boolean on) {
+        drawGlow(c, cx, cy, r * 1.3f, on);
+        label.setColor(on ? 0xFFFFFFA0 : 0xFFFFE600);
+        label.setAlpha(Math.min(255, alpha + (on ? 115 : 80)));
+        label.setTextSize(r * (t.length() > 1 ? 0.9f : 1.25f));
+        c.drawText(t, cx, cy - (label.ascent() + label.descent()) / 2f, label);
     }
 
     @Override
     protected void onDraw(Canvas c) {
-        float a = dpR * 0.34f;
-        arm(c, dpCx - a, dpCy - dpR, dpCx + a, dpCy - a, down.contains(K_UP));
-        arm(c, dpCx - a, dpCy + a, dpCx + a, dpCy + dpR, down.contains(K_DOWN));
-        arm(c, dpCx - dpR, dpCy - a, dpCx - a, dpCy + a, down.contains(K_LEFT));
-        arm(c, dpCx + a, dpCy - a, dpCx + dpR, dpCy + a, down.contains(K_RIGHT));
-        arm(c, dpCx - a, dpCy - a, dpCx + a, dpCy + a, false);
+        drawGlow(c, dpCx, dpCy, dpR * 0.9f, false);
+        arrow(c, 0f, -1f, down.contains(K_UP));
+        arrow(c, 0f, 1f, down.contains(K_DOWN));
+        arrow(c, -1f, 0f, down.contains(K_LEFT));
+        arrow(c, 1f, 0f, down.contains(K_RIGHT));
         face(c, fbCx, fbCy - fbOff, 0, down.contains(K_TRIANGLE));
         face(c, fbCx + fbOff, fbCy, 1, down.contains(K_CIRCLE));
         face(c, fbCx, fbCy + fbOff, 2, down.contains(K_CROSS));
         face(c, fbCx - fbOff, fbCy, 3, down.contains(K_SQUARE));
-        box(c, rL1, "L1", down.contains(K_L1));
-        box(c, rL2, "L2", down.contains(K_L2));
-        box(c, rR1, "R1", down.contains(K_R1));
-        box(c, rR2, "R2", down.contains(K_R2));
-        box(c, rSelect, "SELECT", down.contains(K_SELECT));
-        box(c, rStart, "START", down.contains(K_START));
+        pill(c, l1x, l1y, shR, "L", down.contains(K_L1));
+        pill(c, r1x, r1y, shR, "R", down.contains(K_R1));
+        pill(c, l2x, l2y, sh2R, "L2", down.contains(K_L2));
+        pill(c, r2x, r2y, sh2R, "R2", down.contains(K_R2));
+        pill(c, slx, sly, ssR, "SL", down.contains(K_SELECT));
+        pill(c, stx, sty, ssR, "ST", down.contains(K_START));
     }
 }

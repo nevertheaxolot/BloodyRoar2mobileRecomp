@@ -370,3 +370,48 @@ static inline void br2_start_perf() {
         print('PROF: OK')
     else:
         print('PROF: ANCLA NO COINCIDE, no se modifico')
+
+# --- diag: totales por biblioteca (BR2LIBS) y lotes de dibujado ---
+ph = 'psxrecomp/runtime/src/android_stdio_log.h'
+h = open(ph, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'BR2LIBS' in h:
+    print('LIBS: ya parcheado')
+else:
+    cnts = {}
+    def rep(name, old, new):
+        global h
+        cnts[name] = h.count(old)
+        if cnts[name] == 1:
+            h = h.replace(old, new, 1)
+    rep('F', 'static void* br2_perf_thread(void*) {',
+        '#include <stdint.h>\nextern "C" void gl_renderer_batch_diag(uint64_t out[8]);\nstatic void* br2_perf_thread(void*) {')
+    rep('E', 'char line[512]; int o = snprintf(line, sizeof line, "BR2PERF");',
+        'char line[1024]; int o = snprintf(line, sizeof line, "BR2PERF");')
+    rep('D', 'fprintf(stdout, "%s\\n", line);\n    memcpy(prev, cur, sizeof(br2_ti) * n); np = n;',
+        r'''{ uint64_t bd[8] = {0}; static uint64_t pbd[8]; gl_renderer_batch_diag(bd);
+      o += snprintf(line + o, sizeof line - o, " | batches/s=%llu reasons:", (unsigned long long)((bd[0] - pbd[0]) / 2));
+      for (int bi = 1; bi < 8; bi++) o += snprintf(line + o, sizeof line - o, " %llu", (unsigned long long)((bd[bi] - pbd[bi]) / 2));
+      memcpy(pbd, bd, sizeof bd); }
+    fprintf(stdout, "%s\n", line);
+    memcpy(prev, cur, sizeof(br2_ti) * n); np = n;''')
+    rep('A', 'static br2_ent tab[256]; int nt = 0;',
+        'static br2_ent tab[256]; int nt = 0;\n    struct br2_lt { char n[32]; unsigned c; }; static br2_lt lt[16]; int nl = 0;')
+    rep('B', 'int f = -1;\n      for (int j = 0; j < nt; j++)',
+        r'''{ const char* lb = fn ? strrchr(fn, '/') : nullptr; lb = lb ? lb + 1 : (fn ? fn : "?");
+        int li = -1; for (int j = 0; j < nl; j++) if (strncmp(lt[j].n, lb, 31) == 0) { li = j; break; }
+        if (li < 0 && nl < 16) { li = nl++; snprintf(lt[li].n, sizeof lt[li].n, "%s", lb); lt[li].c = 0; }
+        if (li >= 0) lt[li].c++; }
+      int f = -1;
+      for (int j = 0; j < nt; j++)''')
+    rep('C', 'fprintf(stdout, "%s\\n", line);\n    reports++;',
+        r'''fprintf(stdout, "%s\n", line);
+    { char l2[400]; int o2 = snprintf(l2, sizeof l2, "BR2LIBS n=%u:", cnt);
+      for (int j = 0; j < nl && o2 < 360; j++) o2 += snprintf(l2 + o2, sizeof l2 - o2, " %s=%.0f%%", lt[j].n, cnt ? 100.0 * lt[j].c / cnt : 0.0);
+      fprintf(stdout, "%s\n", l2); }
+    reports++;''')
+    print('LIBS anclas:', cnts)
+    if all(v == 1 for v in cnts.values()):
+        open(ph, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(h)
+        print('LIBS: OK')
+    else:
+        print('LIBS: ANCLAS NO COINCIDEN, no se modifico')

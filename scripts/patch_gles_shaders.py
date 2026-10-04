@@ -462,3 +462,37 @@ void gl_renderer_ftb_report(char* buf, int n) {
         print('FTB: OK')
     else:
         print('FTB: ANCLAS NO COINCIDEN, no se modifico')
+
+# --- semitransparencia en una pasada (framebuffer fetch) + modo rapido ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'BR2_FAST_MODE' in s:
+    print('FAST: ya parcheado')
+else:
+    cnt = {}
+    def rx(name, pat, new):
+        global s
+        n = len(re.findall(pat, s))
+        cnt[name] = n
+        if n == 1:
+            s = re.sub(pat, lambda m: new, s, count=1)
+    rx('EXT', re.escape('"#extension GL_EXT_blend_func_extended : enable\\n"'),
+       '"#extension GL_EXT_blend_func_extended : enable\\n" "#extension GL_ARM_shader_framebuffer_fetch : enable\\n"')
+    rx('FS', r'frag\s*=\s*vec4\(rgb,\s*\(stp == 1 \|\| u_maskset == 1\)\s*\?\s*1\.0\s*:\s*0\.0\);',
+       '\\n#ifdef GL_ARM_shader_framebuffer_fetch\\n  if (u_semimode == 4) rgb += gl_LastFragColorARM.rgb * dst_factor;\\n#endif\\n  frag = vec4(rgb, (stp == 1 || u_maskset == 1) ? 1.0 : 0.0);')
+    rx('BL', r'glEnable\(GL_BLEND\);\s*p_glBlendEquationSeparate\(PSXGL_FUNC_ADD,\s*PSXGL_FUNC_ADD\);\s*p_glBlendFuncSeparate\(GL_ONE,\s*PSXGL_SRC1_ALPHA,\s*GL_ONE,\s*GL_ZERO\);',
+       'glDisable(GL_BLEND); /* BR2: mezcla en el shader (framebuffer fetch) */')
+    rx('ISO', r'int isolate = \(semi >= 0\);',
+       'int isolate = (semi >= 0) && !(br2_fast_mode() && batch_semi == 4);')
+    rx('HLP', re.escape('static int load_modern_gl(void) {'),
+       r'''static int br2_fast_mode(void) { /*BR2_FAST_MODE*/
+  static int v = -1;
+  if (v < 0) { const char* e = getenv("BR2_FAST"); v = (e && e[0] == '0') ? 0 : 1; fprintf(stdout, "psxrecomp: BR2_FAST=%d\n", v); }
+  return v;
+}
+static int load_modern_gl(void) {''')
+    print('FAST anclas:', cnt)
+    if all(v == 1 for v in cnt.values()):
+        open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+        print('FAST: OK')
+    else:
+        print('FAST: ANCLAS NO COINCIDEN, no se modifico')

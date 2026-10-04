@@ -415,3 +415,50 @@ else:
         print('LIBS: OK')
     else:
         print('LIBS: ANCLAS NO COINCIDEN, no se modifico')
+
+# --- diag: quien provoca cada vaciado del lote texturizado ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+ph = 'psxrecomp/runtime/src/android_stdio_log.h'
+h = open(ph, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'br2_ftb' in s:
+    print('FTB: ya parcheado')
+else:
+    s2, nrep = re.subn(r'\bflush_tex_batch\(\)', 'br2_ftb(__func__)', s)
+    a1 = 'static int load_modern_gl(void) {'
+    a2 = 'static void flush_tex_batch(void) {'
+    h1 = 'extern "C" void gl_renderer_batch_diag(uint64_t out[8]);'
+    h2 = 'memcpy(pbd, bd, sizeof bd); }'
+    c = (s2.count(a1), s2.count(a2), h.count(h1), h.count(h2))
+    print('FTB: reemplazos=%d anclas=%s' % (nrep, c))
+    if nrep >= 10 and c == (1, 1, 1, 1):
+        defs = r'''static uint64_t br2_ftb_cnt[64]; static const char* br2_ftb_name[64]; static int br2_ftb_n = 0;
+static void br2_ftb(const char* who) {
+  if (s_tb_n == 0) return;
+  int k = -1;
+  for (int i = 0; i < br2_ftb_n; i++) if (br2_ftb_name[i] == who) { k = i; break; }
+  if (k < 0 && br2_ftb_n < 64) { k = br2_ftb_n++; br2_ftb_name[k] = who; br2_ftb_cnt[k] = 0; }
+  if (k >= 0) br2_ftb_cnt[k]++;
+  flush_tex_batch();
+}
+void gl_renderer_ftb_report(char* buf, int n) {
+  static uint64_t prev[64];
+  int o = 0; buf[0] = 0;
+  for (int r = 0; r < 7; r++) {
+    int b = -1; uint64_t bd = 0;
+    for (int i = 0; i < br2_ftb_n; i++) { uint64_t d = br2_ftb_cnt[i] - prev[i]; if (d > bd) { bd = d; b = i; } }
+    if (b < 0 || bd == 0 || o > n - 60) break;
+    o += snprintf(buf + o, n - o, " %s=%llu", br2_ftb_name[b], (unsigned long long)(bd / 2));
+    prev[b] = br2_ftb_cnt[b];
+  }
+  for (int i = 0; i < br2_ftb_n; i++) prev[i] = br2_ftb_cnt[i];
+}
+'''
+        s2 = s2.replace(a1, 'static void br2_ftb(const char* who);\n' + a1, 1)
+        s2 = s2.replace(a2, defs + a2, 1)
+        h = h.replace(h1, h1 + '\nextern "C" void gl_renderer_ftb_report(char* buf, int n);', 1)
+        h = h.replace(h2, '{ char fb[320]; gl_renderer_ftb_report(fb, (int)sizeof fb); o += snprintf(line + o, sizeof line - o, " | by:%s", fb); }\n      ' + h2, 1)
+        open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s2)
+        open(ph, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(h)
+        print('FTB: OK')
+    else:
+        print('FTB: ANCLAS NO COINCIDEN, no se modifico')

@@ -496,3 +496,68 @@ static int load_modern_gl(void) {''')
         print('FAST: OK')
     else:
         print('FAST: ANCLAS NO COINCIDEN, no se modifico')
+
+# --- diag: tiempos por seccion dentro de flush_tex_batch (ftt) ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+ph = 'psxrecomp/runtime/src/android_stdio_log.h'
+h = open(ph, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'BR2_LAP' in s:
+    print('FTT: ya parcheado')
+else:
+    a_fn = 'static void flush_tex_batch(void) {'
+    e1 = 'extern "C" void gl_renderer_ftb_report(char* buf, int n);'
+    e2 = '" | by:%s", fb); }'
+    e3 = 'char line[1024]; int o = snprintf(line, sizeof line, "BR2PERF");'
+    cnt = {'FN': s.count(a_fn), 'E1': h.count(e1), 'E2': h.count(e2), 'E3': h.count(e3)}
+    ok = all(v == 1 for v in cnt.values())
+    body = None; nb = None
+    if ok:
+        i = s.find(a_fn); j = i; depth = 0; started = False
+        while j < len(s):
+            ch = s[j]
+            if ch == '{':
+                depth += 1; started = True
+            elif ch == '}':
+                depth -= 1
+                if started and depth == 0:
+                    break
+            j += 1
+        body = s[i:j + 1]
+        nb = body
+        subs = [
+            ('S1', r'hr_begin\(1\);(\s*)p_glUseProgram\(s_tex_prog\);',
+             lambda m: 'BR2_MARK(); hr_begin(1); BR2_LAP(0);' + m.group(1) + 'p_glUseProgram(s_tex_prog);'),
+            ('S2', r'(p_glBindBuffer\(PSXGL_ARRAY_BUFFER,\s*s_tex_vbo\);)(\s*p_glBufferData\([^;]*?s_tb,\s*PSXGL_STREAM_DRAW\);)(\s*)tex_batch_draw_passes\(nverts,\s*semi\);',
+             lambda m: 'BR2_LAP(1); ' + m.group(1) + m.group(2) + ' BR2_LAP(2);' + m.group(3) + 'tex_batch_draw_passes(nverts, semi); BR2_LAP(3);'),
+            ('S3', r'hr_end\(\);(\s*)if \(--s_cw_flush_depth == 0\)',
+             lambda m: 'BR2_LAP(4); hr_end(); BR2_LAP(5);' + m.group(1) + 'if (--s_cw_flush_depth == 0)'),
+        ]
+        for name, pat, f_ in subs:
+            n = len(re.findall(pat, nb)); cnt[name] = n
+            if n == 1:
+                nb = re.sub(pat, f_, nb, count=1)
+        ok = all(v == 1 for v in cnt.values())
+    print('FTT anclas:', cnt)
+    if ok:
+        helper = r'''static double br2_acc[6]; static double br2_mark;
+#define BR2_MARK() (br2_mark = cw_ms())
+#define BR2_LAP(i) do { double n_ = cw_ms(); br2_acc[i] += n_ - br2_mark; br2_mark = n_; } while (0)
+void gl_renderer_ftt_report(char* buf, int n) {
+  static double prev[6];
+  static const char* nm[6] = {"hr", "setup", "buf", "draw", "mirror", "end"};
+  int o = 0; buf[0] = 0;
+  for (int i = 0; i < 6 && o < n - 24; i++) {
+    o += snprintf(buf + o, n - o, " %s=%.0f", nm[i], (br2_acc[i] - prev[i]) / 2.0);
+    prev[i] = br2_acc[i];
+  }
+}
+'''
+        s = s.replace(body, helper + nb, 1)
+        h = h.replace(e1, e1 + '\nextern "C" void gl_renderer_ftt_report(char* buf, int n);', 1)
+        h = h.replace(e2, e2 + '\n      { char tb[160]; gl_renderer_ftt_report(tb, (int)sizeof tb); o += snprintf(line + o, sizeof line - o, " | ftt(ms/s):%s", tb); }', 1)
+        h = h.replace(e3, 'char line[2048]; int o = snprintf(line, sizeof line, "BR2PERF");', 1)
+        open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+        open(ph, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(h)
+        print('FTT: OK')
+    else:
+        print('FTT: ANCLAS NO COINCIDEN, no se modifico')

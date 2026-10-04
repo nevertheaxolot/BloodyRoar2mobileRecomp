@@ -51,6 +51,9 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Quitar BOM de main.cpp (lo deja el parche de Android)
+        run: |
+          sed -i 's/\xEF\xBB\xBF//g' psxrecomp/runtime/src/main.cpp 2>/dev/null || true
       - name: Resolve version
         id: version
         shell: bash

@@ -39,6 +39,8 @@ public class SelectGameActivity extends Activity {
             android.widget.SeekBar tcSeekInit = findViewById(R.id.seek_touch);
             if (tcBoxInit != null) tcBoxInit.setChecked(tcPrefs.getBoolean("touch_controls", true));
             if (tcSeekInit != null) tcSeekInit.setProgress(tcPrefs.getInt("touch_alpha", 20));
+            android.widget.EditText envInit = findViewById(R.id.edit_env);
+            if (envInit != null) envInit.setText(tcPrefs.getString("env_text", ""));
         }
         Button pickButton = findViewById(R.id.button_pick_iso);
         Button pickBiosButton = findViewById(R.id.button_pick_bios);
@@ -153,6 +155,10 @@ public class SelectGameActivity extends Activity {
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean("touch_controls", tcOn).putInt("touch_alpha", tcProg).apply();
             intent.putExtra("TOUCH_CONTROLS", tcOn);
             intent.putExtra("TOUCH_ALPHA", 20 + tcProg);
+            android.widget.EditText envBox = findViewById(R.id.edit_env);
+            String envTxt = envBox != null ? envBox.getText().toString() : "";
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putString("env_text", envTxt).apply();
+            intent.putExtra("ENV_TEXT", envTxt);
         }
         startActivity(intent);
     }

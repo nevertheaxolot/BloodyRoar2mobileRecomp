@@ -183,6 +183,29 @@ public class MainActivity extends SDLActivity {
         return false;
     }
 
+    private void br2ApplyEnv() {
+        String t = getIntent().getStringExtra("ENV_TEXT");
+        if (t == null) return;
+        for (String line : t.split("\\r?\\n")) {
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("#")) continue;
+            int eq = line.indexOf('=');
+            if (eq <= 0) continue;
+            String k = line.substring(0, eq).trim();
+            String v = line.substring(eq + 1).trim();
+            if (!k.matches("(PSX|BR2)_[A-Z0-9_]+") || v.length() > 200) {
+                Log.w("BR2Input", "env ignorada: " + line);
+                continue;
+            }
+            try {
+                android.system.Os.setenv(k, v, true);
+                Log.i("BR2Input", "env " + k + "=" + v);
+            } catch (Throwable e) {
+                Log.e("BR2Input", "setenv fallo: " + k, e);
+            }
+        }
+    }
+
     private void br2PrepareInput() {
         br2TouchOn = getIntent().getBooleanExtra("TOUCH_CONTROLS", true);
         br2TouchAlpha = getIntent().getIntExtra("TOUCH_ALPHA", 40);
@@ -194,6 +217,7 @@ public class MainActivity extends SDLActivity {
             Log.e("BR2Input", "setenv BR2_P1_DEVICE fallo", t);
         }
         Log.i("BR2Input", "pad=" + pad + " touch=" + br2TouchOn + " overlay=" + br2UseOverlay + " alpha=" + br2TouchAlpha);
+        br2ApplyEnv();
     }
 
     private void br2AddTouchOverlay() {

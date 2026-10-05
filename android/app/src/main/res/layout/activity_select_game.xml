@@ -64,6 +64,26 @@
         android:max="80"
         android:progress="20" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Ajustes avanzados (una por linea, ej. PSX_ICACHE=0)"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp" />
+
+    <EditText
+        android:id="@+id/edit_env"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:minLines="2"
+        android:gravity="top"
+        android:hint="PSX_ICACHE=0"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888"
+        android:textSize="13sp" />
+
     <Button
         android:id="@+id/button_launch"
         android:layout_width="wrap_content"

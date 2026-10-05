@@ -84,7 +84,7 @@ anchor = 'br2_redirect_stdio();'
 if 'BR2_TRACE_ENV' in m:
     print('TRACE: ya parcheado')
 else:
-    add = ' /*BR2_TRACE_ENV*/ setenv("PSX_CD_DMA_TRACE", "1", 1); setenv("PSX_FPS_TELEMETRY", "1", 1);'
+    add = ' /*BR2_TRACE_ENV*/ setenv("PSX_CD_DMA_TRACE", "1", 0); setenv("PSX_FPS_TELEMETRY", "1", 0);'
     print('TRACE anclas:', m.count(anchor))
     m = m.replace(anchor, anchor + add, 1)
     open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)

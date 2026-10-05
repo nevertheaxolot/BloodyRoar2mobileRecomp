@@ -594,3 +594,19 @@ static void br2_hr_release(void) { if (br2_hr_lazy) { br2_hr_lazy = 0; p_glBindF
         print('LAZY: OK')
     else:
         print('LAZY: ANCLAS NO COINCIDEN, no se modifico')
+
+# --- FBO perezoso: declaracion adelantada de br2_hr_release ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'BR2_LAZY_FWD' in s:
+    print('FWD: ya parcheado')
+else:
+    a = 'static int load_modern_gl(void) {'
+    n = s.count(a)
+    has = 'static void br2_hr_release(void) {' in s
+    print('FWD anclas:', n, '| definicion presente:', has)
+    if n == 1 and has:
+        s = s.replace(a, 'static void br2_hr_release(void); /*BR2_LAZY_FWD*/\n' + a, 1)
+        open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+        print('FWD: OK')
+    else:
+        print('FWD: ANCLAS NO COINCIDEN, no se modifico')

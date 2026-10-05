@@ -561,3 +561,36 @@ void gl_renderer_ftt_report(char* buf, int n) {
         print('FTT: OK')
     else:
         print('FTT: ANCLAS NO COINCIDEN, no se modifico')
+
+# --- FBO perezoso: hr_end() ya no desenlaza el framebuffer (BR2_LAZYFBO) ---
+s = open(p, encoding='utf-8', errors='surrogateescape', newline='').read()
+if 'BR2_LAZYFBO' in s:
+    print('LAZY: ya parcheado')
+else:
+    pat = r'static void hr_end\(void\) \{([^}]*?)p_glBindFramebuffer\(PSXGL_FRAMEBUFFER,\s*0\);'
+    nhr = len(re.findall(pat, s))
+    helper = r'''static int br2_hr_lazy = 0;
+static int br2_lazy_enabled(void) { /*BR2_LAZYFBO*/
+  static int v = -1;
+  if (v < 0) { const char* e = getenv("BR2_LAZYFBO"); v = (e && e[0] == '0') ? 0 : 1; fprintf(stdout, "psxrecomp: BR2_LAZYFBO=%d\n", v); }
+  return v;
+}
+static void br2_hr_release(void) { if (br2_hr_lazy) { br2_hr_lazy = 0; p_glBindFramebuffer(PSXGL_FRAMEBUFFER, 0); } }
+'''
+    names = []
+    if nhr == 1:
+        s = re.sub(pat, lambda m: helper + 'static void hr_end(void) {' + m.group(1) + 'if (br2_lazy_enabled()) br2_hr_lazy = 1; else p_glBindFramebuffer(PSXGL_FRAMEBUFFER, 0);', s, count=1)
+        pat2 = r'(?m)^((?:int|void)\s+(gl_renderer_[A-Za-z0-9_]+)\s*\([^)]*\)\s*\{)'
+        def inj(m):
+            nm = m.group(2)
+            if 'diag' in nm or 'report' in nm:
+                return m.group(0)
+            names.append(nm)
+            return m.group(1) + ' br2_hr_release();'
+        s = re.sub(pat2, inj, s)
+    print('LAZY: hr_end=%d entradas=%s' % (nhr, names))
+    if nhr == 1 and len(names) >= 1:
+        open(p, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+        print('LAZY: OK')
+    else:
+        print('LAZY: ANCLAS NO COINCIDEN, no se modifico')

@@ -320,3 +320,18 @@ static inline void br2_start_prof() {
         print('BR2_PROF: OK')
     else:
         print('BR2_PROF: ANCLAS NO COINCIDEN, no se modifico')
+
+# --- log de "unknown dispatch" (BR2Fatal) ---
+pt = 'psxrecomp/runtime/src/traps.c'
+t = open(pt, encoding='utf-8', errors='surrogateescape', newline='').read()
+anc = '        if (s_fail_fast) {\n            extern void psx_crash_trace_dump(const char *reason, void *seh_info);'
+print('BR2Fatal ancla:', t.count(anc))
+if t.count(anc) == 1 and 'BR2Fatal' not in t:
+    add = ('#ifdef __ANDROID__\n'
+           '        { extern int __android_log_print(int, const char *, const char *, ...);\n'
+           '          static int br2_n = 0;\n'
+           '          if (br2_n++ < 40) __android_log_print(6, "BR2Fatal", "unknown dispatch addr=0x%08X phys=0x%08X ra=0x%08X a0=0x%08X a1=0x%08X failfast=%d", addr, phys, cpu->gpr[31], cpu->gpr[4], cpu->gpr[5], s_fail_fast); }\n'
+           '#endif\n')
+    t = t.replace(anc, add + anc, 1)
+    open(pt, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(t)
+    print('BR2Fatal: OK')

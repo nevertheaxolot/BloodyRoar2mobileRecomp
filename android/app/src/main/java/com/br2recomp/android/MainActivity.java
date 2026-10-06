@@ -84,6 +84,26 @@ public class MainActivity extends SDLActivity {
                 Log.w(TAG, "getArguments: no se encontro BIOS en " + biosFile.getAbsolutePath());
             }
 
+            try {
+                if ("1".equals(android.system.Os.getenv("BR2_GAMECFG"))) {
+                    File cfgDir = new File(getFilesDir(), "gamecfg");
+                    cfgDir.mkdirs();
+                    File cfg = new File(cfgDir, "game_us.toml");
+                    try (InputStream in = getAssets().open("game_us.toml");
+                         OutputStream out = new FileOutputStream(cfg)) {
+                        byte[] buf = new byte[8192];
+                        int n;
+                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                    }
+                    argList.add("--game");
+                    argList.add(cfg.getAbsolutePath());
+                    argList.add("--memcard-dir");
+                    argList.add(getFilesDir().getAbsolutePath());
+                    Log.i(TAG, "getArguments: usando game_us.toml de assets");
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "getArguments: no se pudo preparar game_us.toml", e);
+            }
             argList.add("--no-launcher");
 
             String[] args = argList.toArray(new String[0]);
@@ -162,6 +182,13 @@ public class MainActivity extends SDLActivity {
         android.os.Process.killProcess(android.os.Process.myPid());
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        File oc = new File(getFilesDir(), "overlay_captures.json");
+        if (oc.exists()) Log.i("BR2Input", "overlay_captures.json bytes=" + oc.length());
+    }
+
     private boolean br2TouchOn = true;
     private boolean br2UseOverlay = false;
     private int br2TouchAlpha = 40;
@@ -184,6 +211,12 @@ public class MainActivity extends SDLActivity {
     }
 
     private void br2ApplyEnv() {
+        try {
+            android.system.Os.setenv("PSX_OVERLAY_CAPTURES", getFilesDir().getAbsolutePath() + "/overlay_captures.json", false);
+            android.system.Os.setenv("PSX_OVERLAY_AUTOCOMPILE_OFF", "1", false);
+        } catch (Throwable e) {
+            Log.e("BR2Input", "env por defecto fallo", e);
+        }
         String t = getIntent().getStringExtra("ENV_TEXT");
         if (t == null) return;
         for (String line : t.split("\\r?\\n")) {

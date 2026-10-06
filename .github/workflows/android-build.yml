@@ -316,6 +316,24 @@ jobs:
           echo "--- Proyectos que Gradle reconoce ---"
           cd android && ./gradlew projects || true
 
+      - name: Extraer tabla de simbolos de libpsx_android.so
+        if: always()
+        run: |
+          SO=$(find android/app/build android/app/.cxx -name libpsx_android.so -printf '%s %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+          echo "so: $SO"
+          NM=$(find /usr/local/lib/android/sdk/ndk -name llvm-nm | head -1)
+          mkdir -p symout
+          "$NM" -n --defined-only -S "$SO" | awk 'NF>=4 && ($3=="t" || $3=="T") {print $1, $2, $4}' | gzip -9 > symout/syms.txt.gz
+          ls -la symout
+
+      - name: Subir la tabla de simbolos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpsx-symbols
+          path: symout/syms.txt.gz
+          if-no-files-found: warn
+
       - name: Subir el APK como artefacto descargable
         uses: actions/upload-artifact@v4
         with:

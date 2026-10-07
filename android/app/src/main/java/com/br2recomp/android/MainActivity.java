@@ -91,9 +91,16 @@ public class MainActivity extends SDLActivity {
                     File cfg = new File(cfgDir, "game_us.toml");
                     try (InputStream in = getAssets().open("game_us.toml");
                          OutputStream out = new FileOutputStream(cfg)) {
+                        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
                         byte[] buf = new byte[8192];
                         int n;
-                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                        while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                        String txt = new String(bos.toByteArray(), "UTF-8");
+                        if ("1".equals(android.system.Os.getenv("BR2_NOOVL"))) {
+                            txt = txt.replace("overlay_cache = true", "overlay_cache = false");
+                            Log.i(TAG, "getArguments: overlay_cache desactivado (BR2_NOOVL=1)");
+                        }
+                        out.write(txt.getBytes("UTF-8"));
                     }
                     argList.add("--game");
                     argList.add(cfg.getAbsolutePath());

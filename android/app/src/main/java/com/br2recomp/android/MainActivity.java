@@ -189,9 +189,41 @@ public class MainActivity extends SDLActivity {
         android.os.Process.killProcess(android.os.Process.myPid());
     }
 
+    private void br2ExportExe() {
+        try {
+            File src = new File(getFilesDir(), "SCUS_944.24");
+            File mark = new File(getFilesDir(), "SCUS_944.24.exported");
+            if (!src.exists() || src.length() < 2048 || mark.exists()) return;
+            if (android.os.Build.VERSION.SDK_INT < 29) {
+                Log.w("BR2Input", "export exe: requiere Android 10+");
+                return;
+            }
+            android.content.ContentValues v = new android.content.ContentValues();
+            v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, "SCUS_944.24.bin");
+            v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
+            v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS);
+            android.net.Uri uri = getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+            if (uri == null) {
+                Log.e("BR2Input", "export exe: MediaStore no devolvio uri");
+                return;
+            }
+            try (InputStream in = new java.io.FileInputStream(src);
+                 OutputStream out = getContentResolver().openOutputStream(uri)) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            }
+            mark.createNewFile();
+            Log.i("BR2Input", "SCUS_944.24 exportado a Descargas (" + src.length() + " bytes)");
+        } catch (Throwable e) {
+            Log.e("BR2Input", "export exe fallo", e);
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
+        br2ExportExe();
         File oc = new File(getFilesDir(), "overlay_captures.json");
         if (oc.exists()) Log.i("BR2Input", "overlay_captures.json bytes=" + oc.length());
     }
@@ -221,6 +253,7 @@ public class MainActivity extends SDLActivity {
         try {
             android.system.Os.setenv("PSX_OVERLAY_CAPTURES", getFilesDir().getAbsolutePath() + "/overlay_captures.json", false);
             android.system.Os.setenv("PSX_OVERLAY_AUTOCOMPILE_OFF", "1", false);
+            android.system.Os.setenv("BR2_DUMP_EXE", getFilesDir().getAbsolutePath() + "/SCUS_944.24", false);
         } catch (Throwable e) {
             Log.e("BR2Input", "env por defecto fallo", e);
         }

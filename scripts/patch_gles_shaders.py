@@ -350,3 +350,47 @@ if m.count(anc) == 1 and 'BR2_NOGUARD' not in m:
     m = m.replace(anc, new, 1)
     open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)
     print('BR2_NOGUARD: OK')
+
+# --- BR2_DUMP_EXE: extrae el ejecutable de arranque del disco ---
+pm = 'psxrecomp/runtime/src/main.cpp'
+s = open(pm, encoding='utf-8', errors='surrogateescape', newline='').read()
+f1 = 'static void arm_text_image_guard(const std::string &exe_path,'
+f2 = '    /* Arm the text-image guard now that both possible sources are resolved:\n'
+print('BR2_DUMP_EXE anclas:', s.count(f1), s.count(f2))
+if s.count(f1) == 1 and s.count(f2) == 1 and 'br2_dump_boot_exe' not in s:
+    fn = r'''static void br2_dump_boot_exe(const std::string &disc_path, const char *out_path) {
+    if (!out_path || !*out_path || disc_path.empty()) return;
+    if (FILE *t = std::fopen(out_path, "rb")) { std::fclose(t); return; }
+    PS1::ISOReader iso;
+    if (!iso.Open(disc_path)) {
+        std::fprintf(stdout, "psxrecomp: BR2_DUMP_EXE: no se pudo abrir el disco\n");
+        return;
+    }
+    const char *names[] = {"SCUS_944.24", "SCUS_944.24;1"};
+    for (const char *nm : names) {
+        PS1::ISOFileEntry ent;
+        if (!iso.FindFile(nm, ent) || ent.size <= 2048) continue;
+        uint8_t *buf = (uint8_t *)std::malloc(ent.size);
+        if (!buf) return;
+        size_t got = iso.ReadFile(nm, buf, ent.size);
+        if (got > 2048 && std::memcmp(buf, "PS-X EXE", 8) == 0) {
+            FILE *f = std::fopen(out_path, "wb");
+            if (f) {
+                std::fwrite(buf, 1, got, f);
+                std::fclose(f);
+                std::fprintf(stdout, "psxrecomp: BR2_DUMP_EXE: escrito %s (%zu bytes)\n", out_path, got);
+            }
+            std::free(buf);
+            return;
+        }
+        std::free(buf);
+    }
+    std::fprintf(stdout, "psxrecomp: BR2_DUMP_EXE: ejecutable no encontrado en el disco\n");
+}
+
+'''
+    call = '    if (getenv("BR2_DUMP_EXE")) br2_dump_boot_exe(disc_path_str, getenv("BR2_DUMP_EXE"));\n'
+    s = s.replace(f1, fn + f1, 1)
+    s = s.replace(f2, call + f2, 1)
+    open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(s)
+    print('BR2_DUMP_EXE: OK')

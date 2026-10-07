@@ -335,3 +335,18 @@ if t.count(anc) == 1 and 'BR2Fatal' not in t:
     t = t.replace(anc, add + anc, 1)
     open(pt, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(t)
     print('BR2Fatal: OK')
+
+# --- BR2_NOGUARD: permite saltar el guard de la imagen de texto ---
+pm = 'psxrecomp/runtime/src/main.cpp'
+m = open(pm, encoding='utf-8', errors='surrogateescape', newline='').read()
+anc = '    if (game_config_path)\n        arm_text_image_guard(text_guard_exe_path, text_guard_load_addr,\n                             disc_path_str);\n'
+print('BR2_NOGUARD ancla:', m.count(anc))
+if m.count(anc) == 1 and 'BR2_NOGUARD' not in m:
+    new = ('    if (game_config_path && !(getenv("BR2_NOGUARD") && getenv("BR2_NOGUARD")[0] == \'1\'))\n'
+           '        arm_text_image_guard(text_guard_exe_path, text_guard_load_addr,\n'
+           '                             disc_path_str);\n'
+           '    else if (game_config_path)\n'
+           '        std::fprintf(stdout, "psxrecomp: BR2_NOGUARD=1 (text image guard skipped)\\n");\n')
+    m = m.replace(anc, new, 1)
+    open(pm, 'w', encoding='utf-8', errors='surrogateescape', newline='').write(m)
+    print('BR2_NOGUARD: OK')
